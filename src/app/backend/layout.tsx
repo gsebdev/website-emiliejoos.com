@@ -1,7 +1,7 @@
 'use client'
 import Image from "next/image";
 import Link from "next/link";
-import { CircleUser, Menu } from "lucide-react"
+import { ChevronDown, CircleUser, Menu, StickyNote } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 
@@ -14,19 +14,27 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from "@/components/ui/collapsible"
+
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { usePathname } from "next/navigation.js";
 import clsx from "clsx";
 import { Toaster } from "@/components/ui/sonner";
-import { toast } from "sonner"
 import { store } from "@/store";
 import { Provider, useDispatch, useSelector } from "react-redux";
 import { getLoggedInUser, selectUser } from "@/lib/slices/userSlice";
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Gallery from "@/components/modules/gallery";
-import { selectPartnersStatus, setPartnerResolvedAction } from "@/lib/slices/partnersSlice";
-import { selectImagesStatus, setImageResolvedAction } from "@/lib/slices/imagesSlice";
+import { fetchPartners } from "@/lib/slices/partnersSlice";
+import { fetchPages } from "@/lib/slices/pagesSlice";
+import { fetchImages, removeImage, selectAllImages, selectImagesStatus, setImage, setImageAlt, setImageSaving } from "@/lib/slices/imagesSlice";
+import { ImageType } from "@/lib/definitions";
 
+let debounceTimeout: NodeJS.Timeout | null = null;
 
 const UserLabel = () => {
     const user = useSelector(selectUser);
@@ -35,101 +43,64 @@ const UserLabel = () => {
     )
 }
 
-const partnersNotifications = {
-    add: 'Partenaire ajouté avec succès',
-    update: 'Partenaire modifié avec succès',
-    delete: 'Partenaire supprimé avec succès',
-    error: (error: string | undefined) => error ? error : 'Une erreur est survenue',
-}
-
-const imagesNotifications = {
-    add: 'Image ajoutée avec succès',
-    delete: 'Image supprimée avec succès',
-    error: (error: string | undefined) => error ? error : 'Une erreur est survenue',
-}
-
-const notificationsHandler = (actionState: string, resolvedAction: string | null, error: string | null, messages: any) => {
-    if (actionState === 'idle' || actionState === 'loading') return;
-    if (actionState === 'failed') {
-        return {
-            title: 'Erreur !',
-            description: messages.error(error) as string,
-            variant: 'destructive' as 'default' | 'destructive',
-        };
-    }
-    if (actionState === 'succeeded') {
-        return resolvedAction && messages[resolvedAction] ? {
-            title: 'Succès !',
-            description: messages[resolvedAction] as string,
-            variant: 'default' as 'default' | 'destructive',
-        }
-            :
-            null;
-    }
-}
-
 const Notifications = () => {
-    const dispatch = useDispatch();
-    const partnersStatus = useSelector(selectPartnersStatus);
+    return (
+        <Toaster
+            toastOptions={{
+                classNames: {
+                    error: 'text-white bg-red-500 border-red-500',
+                }
+            }}
+        />
+    )
+}
+
+const BackendGallery = ({ children }: { children: React.ReactNode }) => {
+    const dispatch = useDispatch<typeof store.dispatch>();
+    const images = useSelector(selectAllImages);
     const imagesStatus = useSelector(selectImagesStatus);
 
-
-    /**
-     * Partners Notifications
-     */
-
     useEffect(() => {
-        const { resolvedAction, error } = store.getState().partners;
-        const toastObject = notificationsHandler(partnersStatus, (resolvedAction ?? null), (error ?? null), partnersNotifications);
-
-        if (toastObject) {
-            if(toastObject.variant === 'destructive') {
-                toast.error(toastObject.title, {
-                    description: toastObject.description
-                });
-            } else {
-                toast(toastObject.title, {
-                    description: toastObject.description
-                });
-            }
-            dispatch(setPartnerResolvedAction(null));
-        }
-    }, [partnersStatus, dispatch]);
-
-    /**
-    * Images Notifications
-    */
-
-    useEffect(() => {
-        const { resolvedAction, error } = store.getState().images;
-        const toastObject = notificationsHandler(imagesStatus, (resolvedAction ?? null), (error ?? null), imagesNotifications);
-
-        if (toastObject) {
-            if(toastObject.variant === 'destructive') {
-                toast.error(toastObject.title, {
-                    description: toastObject.description
-                });
-            } else {
-                toast(toastObject.title, {
-                    description: toastObject.description
-                });
-            }
-            dispatch(setImageResolvedAction(null));
+        if (imagesStatus === 'idle') {
+            dispatch(fetchImages());
         }
     }, [imagesStatus, dispatch]);
 
-    /**
-     * general error
-     */
+    const handleImageUpload = useCallback((imageFiles: File[]) => {
+        if (imageFiles && imageFiles.length > 0) {
+            imageFiles.forEach((imageFile) => {
+                dispatch(setImage(imageFile))
+            });
+        }
+    }, [dispatch]);
 
+    const handleAltChange = useCallback((image: ImageType) => {
+        dispatch(setImageSaving({ id: image.id, isSaving: true }));
+        if (debounceTimeout) {
+            clearTimeout(debounceTimeout);
+        }
+        debounceTimeout = setTimeout(() => {
+            dispatch(setImageAlt(image));
+            debounceTimeout = null;
+        }, 400);
+    }, [dispatch]);
+
+    const handleRemoveImage = useCallback((image: ImageType) => {
+        if (image.id) {
+            dispatch(removeImage(image.id));
+        }
+
+    }, [dispatch]);
     return (
-        <Toaster
-        toastOptions={{
-            classNames: {
-                error: 'text-white bg-red-500 border-red-500',
-            }
-        }}
-         />
+        <Gallery
+            onUpload={handleImageUpload}
+            onModifyImage={handleAltChange}
+            onDeleteImage={handleRemoveImage}
+            images={images}
+            isLoading={imagesStatus === 'idle' || (imagesStatus === 'loading' && images.length === 0)}
+        >
+            {children}
+        </Gallery>
     )
 }
 
@@ -137,13 +108,13 @@ const Notifications = () => {
 export default function BackendLayout({ children }: { children: React.ReactNode }) {
     const path = usePathname();
 
+
     useEffect(() => {
         store.dispatch(getLoggedInUser());
     }, []);
 
     return (
         <Provider store={store}>
-            <Gallery />
             <div className="flex min-h-screen w-full flex-col">
                 <header className="sticky top-0 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
                     <Image src="/logo/logo-h-black.webp" alt="logo" width={256} height={80} className="h-[80px]" />
@@ -161,6 +132,12 @@ export default function BackendLayout({ children }: { children: React.ReactNode 
                         <SheetContent side="left">
                             <nav className="grid gap-6 text-lg font-medium">
                                 <Link href="/">Accueil du site</Link>
+                                <Collapsible open={path === "/backend/pages" ? true : undefined}>
+                                    <CollapsibleTrigger className={path === "/backend/pages" ? "active" : ""}>Pages<ChevronDown className="ml-2" /></CollapsibleTrigger>
+                                    <CollapsibleContent>
+                                        <Link href="/backend/pages/about" className={path === "/backend/pages/about" ? "active" : ""}>A propos</Link>
+                                    </CollapsibleContent>
+                                </Collapsible>
                                 <Link href="/backend/posts" className={path === "/backend/posts" ? "active" : ""}>Posts</Link>
                                 <Link
                                     href="/backend/partners"
@@ -212,17 +189,42 @@ export default function BackendLayout({ children }: { children: React.ReactNode 
                             className="grid gap-4 text-sm text-muted-foreground"
                         >
                             <Link href="/">Accueil du site</Link>
+                            <Collapsible open={path === "/backend/pages" ? true : undefined} className="space-y-2">
+                                <CollapsibleTrigger className={path === "/backend/pages" ? "active" : ""}>Pages<ChevronDown className="ml-2 inline" /></CollapsibleTrigger>
+                                <CollapsibleContent className="pl-4">
+                                    <Link
+                                        href="/backend/pages/about"
+                                        className={path === "/backend/pages/about" ? "active" : ""}
+                                        onMouseOver={() => {
+                                            if (!store.getState().pages.items.about) {
+                                                store.dispatch(fetchPages('about'))
+                                            }
+                                        }}
+                                    ><StickyNote className="h-4 w-4 inline" /> A propos</Link>
+                                </CollapsibleContent>
+                            </Collapsible>
                             <Link href="/backend/posts" className={path === "/backend/posts" ? "active" : ""}>Posts</Link>
-                            <Link href="/backend/partners" className={path === "/backend/partners" ? "active" : ""}>Partenaires</Link>
+                            <Link
+                                href="/backend/partners"
+                                className={path === "/backend/partners" ? "active" : ""}
+                                onMouseOver={() => {
+                                    if (store.getState().partners.status === 'idle') {
+                                        store.dispatch(fetchPartners())
+                                    }
+                                }}
+                            >Partenaires</Link>
                             <Link href="/backend/logs" className={path === "/backend/logs" ? "active" : ""}>Historique</Link>
                         </nav>
-                        <div className="grid gap-6">
-                            {children}
-                        </div>
+                        <BackendGallery>
+                            <div className="grid gap-6">
+                                {children}
+                            </div>
+                        </BackendGallery >
                     </div>
                 </main>
-            </div>
+            </div >
             <Notifications />
-        </Provider>
+
+        </Provider >
     );
 }

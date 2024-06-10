@@ -1,6 +1,7 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { ImageType } from '../definitions';
 import { store } from '@/store';
+import { handleAsyncThunkError } from '../utils';
 
 
 
@@ -24,7 +25,7 @@ export interface ImagesState {
  * 
  */
 
-export const { reducer: imagesReducer, actions: { setImageResolvedAction, imageAdded, imageUploadFailed, setImageUploadProgress, imageDeleted, imageDeletionFailed } } = createSlice({
+export const { reducer: imagesReducer, actions: { setImageResolvedAction, imageAdded, imageUploadFailed, setImageUploadProgress, imageDeleted, imageDeletionFailed, setImageSaving } } = createSlice({
     name: 'images',
     initialState: {
         items: [],
@@ -55,6 +56,14 @@ export const { reducer: imagesReducer, actions: { setImageResolvedAction, imageA
         },
         imageDeletionFailed: (state, action) => {
             state.items.splice(action.payload.index, 0, action.payload.image)
+        },
+        setImageSaving: (state, action) => {
+           /* state.items = state.items.map((item: ImageType) => {
+                if (item.id === action.payload.id) {
+                    item.isSaving = action.payload.isSaving
+                }
+                return item
+            })*/
         }
     },
     extraReducers: (builder) => {
@@ -70,7 +79,8 @@ export const { reducer: imagesReducer, actions: { setImageResolvedAction, imageA
             })
             .addCase(fetchImages.rejected, (state, action) => {
                 state.status = 'failed'
-                state.error = action.error?.message
+                const { error } = action
+                state.error = error.message ?? 'Une erreur est survenue lors de la récupération des images.'
             })
             .addCase(removeImage.pending, (state) => {
                 state.status = 'loading'
@@ -91,8 +101,8 @@ export const { reducer: imagesReducer, actions: { setImageResolvedAction, imageA
             })
             .addCase(setImage.rejected, (state, action) => {
                 state.status = 'failed'
-                state.error = action.payload && typeof action.payload === 'string' ? action.payload : action.error?.message
-                state.resolvedAction = 'add'
+                const { error } = action
+                state.error = error.message ?? 'Une erreur est survenue lors de l\'ajout de l\'image.'
             })
             .addCase(removeImage.fulfilled, (state, action) => {
                 const { id } = action.payload.prevState ?? {};
@@ -103,23 +113,24 @@ export const { reducer: imagesReducer, actions: { setImageResolvedAction, imageA
             })
             .addCase(removeImage.rejected, (state, action) => {
                 state.status = 'failed'
-                state.error =action.payload && typeof action.payload === 'string' ? action.payload : action.error?.message
+                const { error } = action
+                state.error = error.message ?? 'Une erreur est survenue lors de la suppression de l\'image.'
             })
             .addCase(setImageAlt.fulfilled, (state, action) => {
-                if (!action?.payload?.success) {
-                    state.status = 'failed'
-                    state.error = action?.payload?.error
-                    return;
-                }
                 const { id, alt } = action.payload.data;
-                state.items = state.items.map(image =>
-                    image.id === id ? { ...image, alt } : image)
-                state.status = 'succeeded'
-                state.resolvedAction = 'updateAlt'
+                const image = state.items.find(image => image.id === id);
+                if (image) {
+                    image.alt = alt;
+                    image.isSaving = false;
+                    state.status = 'succeeded'
+                    state.resolvedAction = 'updateAlt'
+                }
+
             })
             .addCase(setImageAlt.rejected, (state, action) => {
                 state.status = 'failed'
-                state.error = action.error?.message
+                const { error } = action
+                state.error = error.message ?? 'Une erreur est survenue lors de la modification du text ALT de l\'image.'
             })
             .addCase(setImageAlt.pending, (state) => {
                 state.status = 'altPending'
@@ -136,65 +147,63 @@ export const { reducer: imagesReducer, actions: { setImageResolvedAction, imageA
 
 export const fetchImages = createAsyncThunk("images/fetchImages", async () => {
 
-        const response = await fetch(`/api/backend/images`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error(`Failed to fetch images: ${response.status}`);
+    const response = await fetch(`/api/backend/images`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json'
         }
+    });
 
-        return await response.json();
+    if (!response.ok) handleAsyncThunkError('Failed to fetch images');
+
+    const data = await response.json();
+
+    if (!data.success) handleAsyncThunkError(data.error);
+
+    return data;
+
 })
 
-export const removeImage = createAsyncThunk("images/deleteImage", async (id: number, { rejectWithValue, dispatch, getState }) => {
+export const removeImage = createAsyncThunk("images/deleteImage", async (id: number, { dispatch, getState }) => {
 
-    if (!id) {
-        return rejectWithValue(new Error('No ID provided'));
-    }
+    if (!id) handleAsyncThunkError('Image ID is missing');
+
     const deletedImageIndex = (getState as typeof store.getState)().images.items.findIndex((item: ImageType) => item.id === id);
 
-    if (deletedImageIndex === -1) {
-        return rejectWithValue(new Error('Image not found'));
-    }
-    const deletedImage = { ...(getState as typeof store.getState)().images.items[deletedImageIndex]};
+    if (deletedImageIndex === -1) handleAsyncThunkError('Image not found');
+
+    const deletedImage = { ...(getState as typeof store.getState)().images.items[deletedImageIndex] };
 
     dispatch(imageDeleted(id));
 
-    try {
-        const response = await fetch(`/api/backend/images/${id}`, {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-
-        const data = await response.json();
-
-        if (!data.success) {
-            throw new Error(data.error);
+    const response = await fetch(`/api/backend/images/${id}`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json'
         }
-        return { data, prevState: deletedImage };
+    });
 
-    } catch (error) {
-
-        dispatch(imageDeletionFailed({image: deletedImage, index: deletedImageIndex}));
-
-        return rejectWithValue(error instanceof Error ? error.message : 'Unknown error');
+    if (!response.ok) {
+        dispatch(imageDeletionFailed({ image: deletedImage, index: deletedImageIndex }));
+        handleAsyncThunkError('Failed to delete image');
     }
 
+    const data = await response.json();
 
-
-})
-
-export const setImage = createAsyncThunk('images/setImage', async (imageFile: File, { rejectWithValue, dispatch }) => {
-
-    if (!imageFile || !(imageFile instanceof File)) {
-        return rejectWithValue('No file provided')
+    if (!data.success) {
+        dispatch(imageDeletionFailed({ image: deletedImage, index: deletedImageIndex }));
+        handleAsyncThunkError(data.error);
     }
+
+    return { 
+        data,
+         prevState: deletedImage 
+        };
+});
+
+export const setImage = createAsyncThunk('images/setImage', async (imageFile: File, { dispatch }) => {
+
+    if (!imageFile || !(imageFile instanceof File)) handleAsyncThunkError('No image file provided')
 
     const tempImg = {
         tempId: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
@@ -211,7 +220,10 @@ export const setImage = createAsyncThunk('images/setImage', async (imageFile: Fi
     formData.append('file', imageFile);
     formData.append('enctype', 'multipart/form-data');
 
+    let data = null;
+
     try {
+
         const response = await new Promise<string>((resolve, reject) => {
             const xhr = new XMLHttpRequest();
             xhr.upload.addEventListener('progress', (e) => {
@@ -230,27 +242,31 @@ export const setImage = createAsyncThunk('images/setImage', async (imageFile: Fi
 
             xhr.open('POST', '/api/backend/images');
             xhr.send(formData);
-        });
-        const data = JSON.parse(response);
+        })
+
+        data = JSON.parse(response);
 
         if (!data.success) {
             throw new Error(data.error);
         }
-        return {
-            ...data,
-            tempId: tempImg.tempId
-        }
-    } catch (error: any) {
-        const errorMsg = error instanceof Error ? error.message : 'Unknown error'
+
+    } catch (error) {
         dispatch(imageUploadFailed(tempImg.tempId));
-        return rejectWithValue(errorMsg)
+        handleAsyncThunkError('Failed to upload image');
+    }
+
+
+    return {
+        ...data,
+        tempId: tempImg.tempId
     }
 })
 
 
 
-export const setImageAlt = createAsyncThunk('images/setImageAlt', async ({ id, alt }: { id?: number, alt?: string }, { rejectWithValue }) => {
-    if (!id || typeof id !== 'number') return rejectWithValue(new Error('Invalid ID'))
+export const setImageAlt = createAsyncThunk('images/setImageAlt', async ({ id, alt }: { id?: number, alt?: string }) => {
+
+    if (!id || typeof id !== 'number') handleAsyncThunkError('ID Invalide')
 
     const response = await fetch(`/api/backend/images/${id}`, {
         method: 'PATCH',
@@ -259,7 +275,14 @@ export const setImageAlt = createAsyncThunk('images/setImageAlt', async ({ id, a
         },
         body: JSON.stringify({ alt })
     });
-    return await response.json()
+
+    if (!response.ok) handleAsyncThunkError('Failed to set image alt')
+
+    const data = await response.json();
+
+    if (!data.success) handleAsyncThunkError(data.error);
+
+    return data;
 })
 
 

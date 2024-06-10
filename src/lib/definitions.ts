@@ -1,7 +1,10 @@
 export type Partner = {
     title: string
     url: string
-    logo: string    
+    logo: {
+        id?: number
+        url?: string
+    }
     description: string
     id: number
     display_order: number
@@ -24,5 +27,15 @@ export type ImageType = {
     alt?: string,
     filename: string,
     placeholderUrl?: string,
-    uploadProgress?: number
+    uploadProgress?: number,
+    isSaving?: boolean
+}
+
+export type PageType = {
+    id: number,
+    slug: string,
+    title: string,
+    content: string,
+    images_number: number,
+    images: number[],
 }

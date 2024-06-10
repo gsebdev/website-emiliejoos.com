@@ -11,6 +11,7 @@ import { selectImageById } from "@/lib/slices/imagesSlice"
 import { setEditedPartner, setViewedPartner } from "@/lib/slices/userSlice"
 import Image from "next/image"
 import { DragTableColumn } from "@/components/ui/drag-table"
+import { ImageType } from "@/lib/definitions"
 
 
 
@@ -37,30 +38,34 @@ const ContextMenuRow = ({ row }: { row: any }) => {
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                 <DropdownMenuItem onClick={() => dispatch(setEditedPartner(partner.id))}> Modifier le partenaire</DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => dispatch(removePartner(partner.id))}>Supprimer le partenaire</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => dispatch(removePartner({ id: partner.id }))}>Supprimer le partenaire</DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
     )
 }
 
-const LogoCell = ({ row }: { row: any }) => {
-    const logoImage = useSelector(selectImageById(Number(row.logo)))
+const LogoCell = ({ row }: { row: { logo: { id?: number, url?: string } } }) => {
+    const logoImage = row.logo?.id ?
+        store.getState().images.items.find((image: ImageType) => image.id === row.logo.id) :
+        {
+            src: row.logo.url ?? ""
+        } as ImageType
 
     return (
         <>
-            {logoImage ?
+            {logoImage?.src ?
                 <Image
                     className="max-w-[100px] h-full object-contain rounded"
                     src={logoImage.src}
-                    alt={logoImage.alt}
+                    alt={logoImage?.alt ?? ""}
                     sizes="(max-width: 576px) 50vw, (max-width: 1024px) 33vw, 25vw"
                     placeholder="blur"
                     blurDataURL={process.env.IMAGE_BLUR_DATA}
-                    height={logoImage.height}
-                    width={logoImage.width}
+                    height={logoImage?.height}
+                    width={logoImage?.width}
                 />
                 :
-                <span>{row.logo}</span>
+                <span>{JSON.stringify(row.logo)}</span>
             }
         </>
     )
@@ -69,7 +74,7 @@ const LogoCell = ({ row }: { row: any }) => {
 const DetailsCell = ({ row }: { row: any }) => {
     return (
         <div>
-            <p className="font-bold text-lg">{row.title}</p>
+            <p className="font-bold">{row.title}</p>
             <p className="text-xs font-bold underline text-foreground">{row.url}</p>
             <p className="text-xs text-foreground mt-2">{row.description}</p>
         </div>

@@ -19,14 +19,14 @@ export default function Logs() {
         fetch('/api/backend/logs')
             .then(res => res.json())
             .then(data => {
-                if (data.success) {
+                if (data.success && Array.isArray(data.data)) {
                     setLogs(data.data)
                 } else {
                     throw new Error(data.error)
                 }
                 setIsLoading(false)
             })
-            .catch(err => {
+            .catch(() => {
                 setError(`Erreur de récupération des logs...`)
                 setIsLoading(false)
             })

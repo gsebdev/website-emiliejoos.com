@@ -1,47 +1,57 @@
-import { createConnection } from "@/db";
-import { ResultSetHeader, RowDataPacket } from "mysql2";
+import { createError, handleError } from "@/app/api/utils";
+import { deleteImageFromDB, updateImageAlt } from "@/db";
 import { NextResponse } from "next/server";
 import fs from "node:fs/promises";
 
 export async function DELETE(req: Request, { params }: { params: { id: string } }) {
     const { id } = params;
-    const db = await createConnection();
+    
     try {
-        const sqlGet = 'SELECT * FROM `images` WHERE `id` = ?';    
-        const sqlDel = 'DELETE FROM `images` WHERE `id` = ?';
-        const [image] = await db.query<RowDataPacket[]>(sqlGet, [id]);
-        if (!image.length) {
-            return NextResponse.json({ success: false, error: 'Image not found' });
+
+        const deletedImage = await deleteImageFromDB(Number(id));
+
+        try {
+
+            await fs.unlink(`./public/images/${deletedImage.filename}`);
+
+        } catch(e) {
+
+            console.error(e);
+            throw createError('Failed to delete image', 500);
+    
         }
-        await db.query<ResultSetHeader>(sqlDel, [id]);
-        fs.unlink(`./public/images/${image[0].filename}`);
-        db.end();
-        return NextResponse.json({ success: true, prevState: image[0]} );
+        
+        return NextResponse.json({ 
+            success: true, 
+            prevState: deletedImage
+        });
+
     } catch (e) {
-        db.end();
-        return NextResponse.json({ success: false, error: e });
+
+        return handleError(e);
+
     }
 }
 
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+    
     const { id } = params;
-    const db = await createConnection();
+
     try {
-        
-        const body = await req.json();
-        const sqlGet = 'SELECT * FROM `images` WHERE `id` = ?';
-        const [image] = await db.query<RowDataPacket[]>(sqlGet, [id]);
-        if (!image.length) {
-            return NextResponse.json({ success: false, error: 'Image not found' });
-        }
-        const sqlSet = 'UPDATE `images` SET `alt` = ? WHERE `id` = ?';
-        await db.query<ResultSetHeader>(sqlSet, [body.alt, id]);
-        db.end();
-        return NextResponse.json({ success: true, data: { ...image[0], alt: body.alt } });
+        const { alt } = await req.json();
+
+        const { updated, old } = await updateImageAlt(Number(id), alt);
+
+
+        return NextResponse.json({
+            success: true,
+            data: updated,
+            prevState: old
+        });
+
     } catch (e) {
-        db.end();
-        return NextResponse.json({ success: false, error: e });
+        return handleError(e);
     }
 }
 

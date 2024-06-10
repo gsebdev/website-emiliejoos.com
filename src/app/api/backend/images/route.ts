@@ -3,53 +3,74 @@ import sharp from 'sharp';
 import path from "node:path";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
-import { createConnection } from "@/db";
-import { ResultSetHeader, RowDataPacket } from "mysql2";
+import { getImagesFromDB, insertImageToDB } from "@/db";
+import { createError, handleError } from "../../utils";
 
-export async function POST(req: Request) {
-    const db = await createConnection();
+function validateImageFile(file: File) {
+    const ext = path.extname(file.name).toLowerCase();
+
+    // check if good format
+    if (!(file instanceof File) || !['.jpg', '.jpeg', '.png', '.webp', '.svg'].includes(ext) || !file.type.startsWith('image/')) {
+        throw createError("Unsupported file format", 400);
+    }
+
+    //check file size
+    if (file.size > 5 * 1024 * 1024) {
+        throw createError("File too large", 400);
+    }
+
+}
+
+async function saveImageOnServer(file: File) {
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = new Uint8Array(arrayBuffer);
+    let filename = file.name;
+    let metadata = null;
+
     try {
-        const formData = await req.formData();
-        const file = formData.get("file") as File;
-        // check if good format
-        const ext = path.extname(file.name).toLowerCase();
-        if (!(file instanceof File) || !['.jpg', '.jpeg', '.png', '.webp', '.svg'].includes(ext) || !file.type.startsWith('image/')) {
-            db.end();
-            return NextResponse.json({ success: false, error: "Unsupported file format" });
-        }
-        //check file size
-        if (file.size > 5 * 1024 * 1024) {
-            db.end();
-            return NextResponse.json({ success: false, error: "File too large" });
-        }
-
-        const arrayBuffer = await file.arrayBuffer();
-        const buffer = new Uint8Array(arrayBuffer);
-
         //get file metadata
-        let metadata;
-        try {
-            metadata = await sharp(buffer).metadata();
-        } catch (e) {
-            db.end();
-            return NextResponse.json({ success: false, error: "file data error" });
-        }
+        metadata = await sharp(buffer).metadata();
+
         //rename file if name already exists
-        let filename = file.name;
         let i = 0;
-        while (await fs.access(`./public/images/${filename}`).then(() => true).catch(() => false)) {
+
+        while (
+            await fs.access(`./public/images/${filename}`).then(() => true).catch(() => false)
+        ) {
             filename = `${file.name.split('.')[0]}-${++i}.${file.name.split('.')[1]}`;
         }
+
         await fs.writeFile(`./public/images/${filename}`, buffer);
 
+    } catch (e) {
 
-        revalidatePath("/");
+        console.error(e)
+        throw createError("file data error", 500);
+
+    }
+
+    revalidatePath("/");
+
+    return { filename, metadata };
+}
+
+export async function POST(req: Request) {
+    try {
+        const formData = await req.formData();
+
+        const file = formData.get("file") as File;
+
+        //validate file
+        validateImageFile(file);
+
+
+        //save fileon server
+        const { filename, metadata } = await saveImageOnServer(file);
 
         // Insert record in table 'images'
-        
-        const sql = 'INSERT INTO `images` (`filename`, `height`, `width`, `alt`, `src`) VALUES (?, ?, ?, ?, ?)';
-        const [result] = await db.query<ResultSetHeader>(sql, [filename, metadata.height, metadata.width, '', `${process.env.BASE_URL}/images/${filename}`]);
-        db.end();
+        const src = `${process.env.BASE_URL}/images/${filename}`;
+        const result = await insertImageToDB(filename, metadata.height, metadata.width, '', src);
+
         return NextResponse.json({
             success: true,
             data: {
@@ -58,26 +79,29 @@ export async function POST(req: Request) {
                 height: metadata.height,
                 width: metadata.width,
                 alt: '',
-                src: `${process.env.BASE_URL}/images/${filename}`
+                src: src
             }
         });
     } catch (e) {
-        db.end();
-        return NextResponse.json({ success: false, error: e });
+        return handleError(e);
     }
 }
 
 export async function GET() {
-    const db = await createConnection();
     try {
-        
-        const sql = 'SELECT * FROM `images`';
-        const [images] = await db.query<RowDataPacket[]>(sql);
-        db.end();
-        return NextResponse.json({ success: true, data: images });
+        const images = await getImagesFromDB();
 
+        if (!images.length) {
+            throw createError('No images found', 404);
+
+        }
+
+        return NextResponse.json({
+            success: true,
+            data: images
+        });
+        
     } catch (e) {
-        db.end();
-        return NextResponse.json({ success: false, error: e });
+        return handleError(e);
     }
 }

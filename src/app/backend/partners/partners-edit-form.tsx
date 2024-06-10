@@ -1,3 +1,4 @@
+import { useGallery } from "@/components/modules/gallery";
 import { Button } from "@/components/ui/button";
 import {
     Form,
@@ -15,7 +16,6 @@ import Loader from "@/components/ui/loader";
 import { Textarea } from "@/components/ui/textarea";
 import { Partner } from "@/lib/definitions";
 import { selectAllPartners, setPartner } from "@/lib/slices/partnersSlice";
-import { openGallery, setSelectedImagesIndex } from "@/lib/slices/userSlice";
 import { store } from "@/store";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
@@ -29,20 +29,23 @@ interface PartnerFormProps {
     isLoading?: boolean;
 }
 const FormSchema = z.object({
-    id: z.string().min(0),
+    id: z.number().min(0),
     title: z.string().min(2, {
         message: "Le nom d'utilisateur doit faire au moins 2 caractères.",
     }),
     url: z.string().min(7, {
         message: "L'url' doit faire au moins 7 caractères.",
     }),
-    logo: z.string().min(1, {
-        message: "le logo doit faire au moins 10 caractères.",
+    logo: z.object({
+        id: z.number().positive().optional(),
+        url: z.string().url().optional(),
+    }, {
+        message: "Le logo n'est pas valide",
     }),
     description: z.string().min(2, {
         message: "la decription doit faire au moins 2 caractères.",
     }),
-    display_order: z.string()
+    display_order: z.number()
 })
 
 
@@ -50,17 +53,20 @@ const FormSchema = z.object({
 
 export default function EditForm({ partner, afterSubmit, isLoading }: PartnerFormProps) {
     const dispatch = useDispatch<typeof store.dispatch>();
+
     const newOrder = useSelector(selectAllPartners).length + 1;
+
+    const { setGalleryOpen } = useGallery();
 
     const form = useForm<z.infer<typeof FormSchema>>({
         resolver: zodResolver(FormSchema),
         defaultValues: {
-            id: "",
+            id: 0,
             title: "",
             url: "",
-            logo: "",
+            logo: {},
             description: "",
-            display_order: newOrder.toString(),
+            display_order: newOrder,
         },
     });
 
@@ -68,35 +74,30 @@ export default function EditForm({ partner, afterSubmit, isLoading }: PartnerFor
         if (partner) {
             form.reset({
                 ...partner,
-                display_order: String(partner.display_order),
-                id: String(partner.id),
+                display_order: partner.display_order,
+                id: partner.id,
             });
         }
     }, [partner, form]);
 
 
-    const onSubmit = async () => {
+    const onSubmit =  () => {
         const { title, url, logo, description, id, display_order } = form.getValues();
-        await dispatch(setPartner({ title, url, logo, description, id: Number(id), display_order: Number(display_order) }));
+        console.log(title, url, logo, description, id, display_order)
+        dispatch(setPartner({
+            partner: {
+                title,
+                url,
+                logo,
+                description,
+                id: id,
+                display_order: display_order
+            }
+        }));
         if (afterSubmit) afterSubmit();
     }
 
-    const onGalleryOpen = (ids : string[]) => {
-        const indexes = ids.map((id) => {
-            return store.getState().images.items.findIndex((item) => String(item.id) === id)
-        });
-        dispatch(setSelectedImagesIndex(indexes));
-        dispatch(openGallery(true));
-        const unsubscribe = store.subscribe(() => {
-            const state = store.getState();
-            const { selectedImagesIndex, galleryOpen } = state.user;
-            const selectedImage = state.images.items[selectedImagesIndex[0]] || undefined;
-            if (selectedImage && !galleryOpen) {
-                form.setValue("logo", String(selectedImage.id));
-                unsubscribe();
-            }
-        });
-    }
+
 
     return (
         <Form {...form}>
@@ -107,7 +108,7 @@ export default function EditForm({ partner, afterSubmit, isLoading }: PartnerFor
                     render={({ field }) => (
                         <FormItem className="hidden">
                             <FormControl>
-                                <Input  {...field} type="hidden" />
+                                <Input {...field} type="hidden" />
                             </FormControl>
                         </FormItem>
                     )}
@@ -164,18 +165,24 @@ export default function EditForm({ partner, afterSubmit, isLoading }: PartnerFor
                         <FormItem>
                             <FormLabel>Logo</FormLabel>
                             <FormControl>
-                                <Input type="hidden" {...field} />
+                                <ImageInput
+                                    className="w-48 h-auto"
+                                    onClick={() => setGalleryOpen({
+                                        selection: Object.hasOwn(field.value, "id") && typeof field.value.id === "number" ? [field.value.id] : [],
+                                        onValidateSelection: (selected) => {
+                                            form.setValue("logo", {
+                                                id: selected?.[0].id
+                                            });
+                                        },
+                                    })
+                                    }
+                                    value={
+                                        Object.hasOwn(field.value, "id") && typeof field.value.id === "number" ?
+                                            store.getState().images.items.find((image) => image.id === field.value.id) :
+                                            field.value.url ?? ""
+                                    }
+                                />
                             </FormControl>
-                            <ImageInput
-                                onClick={() => onGalleryOpen(field.value ? [field.value] : [])} 
-                                value={
-                                    store
-                                        .getState()
-                                        .images.items
-                                        .find((image) => String(image.id) === field.value)
-                                    || undefined
-                                }
-                            />
                             <FormMessage />
                         </FormItem>
                     )}

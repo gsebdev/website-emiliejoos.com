@@ -1,26 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { User,  verifyJwt } from './auth';
+import { verifyJwt } from './auth';
+import { redirectToBackend, redirectToLogin } from './lib/utils';
 
 
 
 
 export async function middleware(request: NextRequest) {
-  const cookieData = JSON.parse(request.cookies.get('loggedUser')?.value ?? '{}');
-  const token = cookieData.token;
-  const isLoggedIn = await verifyJwt(token);
+  try {
+    const cookieData = request.cookies.get('loggedUser');
+    const isLoginPage = request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname === '/login';
+    const isApi = request.nextUrl.pathname.startsWith('/api') || request.nextUrl.pathname === '/api';
+    let isLoggedIn = false;
 
-  if(isLoggedIn) {
-    if (request.nextUrl.pathname.startsWith('/login')) return Response.redirect(new URL('/backend', request.url));
-  } else {
-    if(request.nextUrl.pathname.startsWith('/backend')) return Response.redirect(new URL('/login', request.url));
-    if(request.nextUrl.pathname.startsWith('/api/backend')) return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+    if (cookieData) {
+      const { token } = JSON.parse(cookieData.value);
+
+      if (token) {
+        isLoggedIn = !! await verifyJwt(token);
+      }
+    }
+
+    if (isLoggedIn && isLoginPage) return redirectToBackend();
+
+    if (!isLoggedIn && isApi) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    if (!isLoggedIn && !isLoginPage) return redirectToLogin(request.nextUrl.href);
+
+  } catch (error) {
+    console.error('Middleware error:', error);
   }
 }
- 
+
+
+
 export const config = {
   matcher: [
     '/login',
     '/backend/:path*',
     '/api/backend/:path*'
-],
-}
+  ],
+};

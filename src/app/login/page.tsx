@@ -1,6 +1,5 @@
 
 "use client"
-import { login } from "../../lib/actions";
 
 import Image from 'next/image';
 import Link from "next/link";
@@ -13,7 +12,6 @@ import { Button } from "@/components/ui/button"
 import {
     Form,
     FormControl,
-    FormDescription,
     FormField,
     FormItem,
     FormLabel,
@@ -21,6 +19,9 @@ import {
 } from "@/components/ui/form"
 
 import { Input } from "@/components/ui/input"
+import { FormEvent, useState } from 'react';
+import Loader from '@/components/ui/loader';
+import { redirect } from 'next/navigation';
 
 const FormSchema = z.object({
     username: z.string().min(5, {
@@ -32,6 +33,8 @@ const FormSchema = z.object({
 })
 
 export default function Home() {
+    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState<boolean>(false);
 
     const form = useForm<z.infer<typeof FormSchema>>({
         resolver: zodResolver(FormSchema),
@@ -41,6 +44,44 @@ export default function Home() {
         },
     });
 
+    const handleSubmitForm = (e: FormEvent) => {
+        e.preventDefault();
+        if (loading) return;
+        const sendLogin = async () => {
+
+            setLoading(true);
+            setError(null);
+
+            const data = form.getValues();
+
+            const response = await fetch('/api/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success) {
+                    const origin = new URL(window.location.href).searchParams.get('origin');
+                    if (origin) {
+                        window.location.href = origin;
+                        return;
+                    }
+                }
+            }
+
+            if (!response.ok) {
+                const data = await response.json();
+                setError(data.error);
+            }
+
+            setLoading(false);
+        }
+
+        sendLogin();
+    }
     return (
         <>
             <header className="container h-[100px] flex justify-between items-center px-8">
@@ -50,7 +91,7 @@ export default function Home() {
                         <li><Link href="/">Accueil</Link></li>
                         <li><Link className="active" href="/login">Connexion</Link></li>
                     </ul>
-                    </nav>
+                </nav>
             </header>
             <main>
 
@@ -58,7 +99,7 @@ export default function Home() {
                     <h1>Identifiez-vous</h1>
                     <p className="text-sm">{'Entrez votre nom d\'utilisateur et votre mot de passe'}</p>
                     <Form {...form}>
-                        <form action={login} className="space-y-6 p-4">
+                        <form className="space-y-6 p-4" onSubmit={handleSubmitForm}>
                             <FormField
                                 control={form.control}
                                 name="username"
@@ -88,7 +129,10 @@ export default function Home() {
                             />
 
 
-                            <Button type="submit" className="w-full">S&apos;identifier</Button>
+                            <Button type="submit" className="w-full">{loading ? <Loader /> : 'S\'identifier'}</Button>
+                            {!!error &&
+                                <p className="text-xs text-red-500">{error}</p>
+                            }
                         </form>
                     </Form>
                 </div>

@@ -10,7 +10,7 @@ type Props = {
     className?: string,
     fileTypes?: string[],
     maxSize?: number,
-    value?: ImageType,
+    value?: ImageType | string,
     multipleSelect?: boolean
 }
 export default function ImageInput({ onChange = () => { }, onClick, className, fileTypes, maxSize, value, multipleSelect }: Props) {
@@ -40,22 +40,31 @@ export default function ImageInput({ onChange = () => { }, onClick, className, f
             <div
                 onClick={onClick}
                 className={cn(
-                    `cursor-pointer relative w-48 ${value ? "h-auto" : "h-48"} border-2 border-dashed rounded-md flex flex-col justify-between items-center p-2 `,
+                    `cursor-pointer relative h-64 ${value ? "fit-content" : "w-64"} border-2 border-dashed rounded-md flex flex-col justify-between items-center p-2 `,
                     className
                 )}
             >
                 {
                     value ?
-                        <Image
-                            src={value.src}
-                            className="w-full h-full object-cover rounded-md"
-                            alt={"selected image: " + value.alt}
-                            height={value.height}
-                            width={value.width}
-                            placeholder="blur"
-                            sizes="(max-width: 576px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                            blurDataURL={process.env.IMAGE_BLUR_DATA}
-                        />
+                        <>{
+                            (typeof value === 'string' && value.startsWith('http')) ?
+                                <Image
+                                    src={value}
+                                    fill
+                                    className="rounded-md"
+                                    alt=""
+                                /> :
+                                <Image
+                                    src={(value as ImageType).src}
+                                    className="w-full h-full object-cover rounded-md"
+                                    alt={"selected image: " + (value as ImageType).alt}
+                                    height={(value as ImageType).height}
+                                    width={(value as ImageType).width}
+                                    placeholder="blur"
+                                    sizes="(max-width: 576px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                                    blurDataURL={process.env.IMAGE_BLUR_DATA}
+                                />
+                        }</>
                         :
                         <>
                             <ImageUp className="w-24 h-24 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
