@@ -166,21 +166,27 @@ export default function EditForm({ partner, afterSubmit, isLoading }: PartnerFor
                             <FormLabel>Logo</FormLabel>
                             <FormControl>
                                 <ImageInput
-                                    className="w-48 h-auto"
+                                    className={`${field.value ? 'w-fit' : 'w-48'} h-48`}
                                     onClick={() => setGalleryOpen({
                                         selection: Object.hasOwn(field.value, "id") && typeof field.value.id === "number" ? [field.value.id] : [],
                                         onValidateSelection: (selected) => {
                                             form.setValue("logo", {
-                                                id: selected?.[0].id
+                                                id: selected?.[0]?.id
                                             });
                                         },
-                                    })
-                                    }
+                                    })}
                                     value={
                                         Object.hasOwn(field.value, "id") && typeof field.value.id === "number" ?
                                             store.getState().images.items.find((image) => image.id === field.value.id) :
                                             field.value.url ?? ""
                                     }
+                                    onChange={(url) => {
+                                        if(typeof url === "string") {
+                                            form.setValue("logo", { url });
+                                        }
+                                    }}
+                                    
+                                    hasURLInput
                                 />
                             </FormControl>
                             <FormMessage />

@@ -45,25 +45,35 @@ const ContextMenuRow = ({ row }: { row: any }) => {
 }
 
 const LogoCell = ({ row }: { row: { logo: { id?: number, url?: string } } }) => {
-    const logoImage = row.logo?.id ?
-        store.getState().images.items.find((image: ImageType) => image.id === row.logo.id) :
-        {
-            src: row.logo.url ?? ""
-        } as ImageType
+    const logoImage = useSelector(row.logo.id ? selectImageById(row.logo.id) : () => row.logo.url)
 
     return (
         <>
-            {logoImage?.src ?
-                <Image
-                    className="max-w-[100px] h-full object-contain rounded"
-                    src={logoImage.src}
-                    alt={logoImage?.alt ?? ""}
-                    sizes="(max-width: 576px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                    placeholder="blur"
-                    blurDataURL={process.env.IMAGE_BLUR_DATA}
-                    height={logoImage?.height}
-                    width={logoImage?.width}
-                />
+            {logoImage ?
+                <>
+                    {
+                        typeof logoImage === "object" && !!logoImage.src && !!logoImage.height && !!logoImage.width &&
+                        <Image
+                            className="max-w-[100px] h-full object-contain rounded"
+                            src={logoImage.src}
+                            alt={logoImage?.alt ?? ""}
+                            sizes="(max-width: 576px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                            placeholder="blur"
+                            blurDataURL={process.env.IMAGE_BLUR_DATA}
+                            height={logoImage?.height}
+                            width={logoImage?.width}
+                        />
+                    }
+                    {
+                        typeof logoImage === "string" &&
+                        <img
+                            src={logoImage}
+                            className="max-w-[100px] h-full object-contain rounded"
+                            alt=""
+                        />
+                    }
+                </>
+
                 :
                 <span>{JSON.stringify(row.logo)}</span>
             }
@@ -75,8 +85,8 @@ const DetailsCell = ({ row }: { row: any }) => {
     return (
         <div>
             <p className="font-bold">{row.title}</p>
-            <p className="text-xs font-bold underline text-foreground">{row.url}</p>
-            <p className="text-xs text-foreground mt-2">{row.description}</p>
+            <p className="text-xs mb-2">{row.description}</p>
+            <p className="text-xs text-foreground border-t pt-2">{row.url}</p>
         </div>
     )
 }

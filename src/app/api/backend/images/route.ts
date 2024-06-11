@@ -3,8 +3,9 @@ import sharp from 'sharp';
 import path from "node:path";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
-import { getImagesFromDB, insertImageToDB } from "@/db";
+import { deleteImageFromDB, getImagesFromDB, insertImageToDB } from "@/db";
 import { createError, handleError } from "../../utils";
+import { ImageType } from "@/lib/definitions";
 
 function validateImageFile(file: File) {
     const ext = path.extname(file.name).toLowerCase();
@@ -91,16 +92,24 @@ export async function GET() {
     try {
         const images = await getImagesFromDB();
 
-        if (!images.length) {
-            throw createError('No images found', 404);
+        const returnedImages: ImageType[] = [];
 
+        for (const i of images) {
+            const filePath = path.join(process.cwd(), 'public', 'images', i.filename);
+            const fileExists = await fs.access(filePath).then(() => true).catch(() => false);
+        
+            if (fileExists) {
+                returnedImages.push(i);
+            } else if (i.id) {
+                await deleteImageFromDB(i.id);
+            }
         }
 
         return NextResponse.json({
             success: true,
-            data: images
+            data: returnedImages
         });
-        
+
     } catch (e) {
         return handleError(e);
     }
