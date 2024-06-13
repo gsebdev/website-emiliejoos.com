@@ -4,17 +4,29 @@ import { useEffect, useMemo, useState } from "react"
 import Image from "next/image"
 import { ImageType } from "@/lib/definitions"
 
-type Props = {
-    onChange?: (file: File[] | string) => void
-    onClick?: () => void
-    className?: string,
-    fileTypes?: string[],
-    maxSize?: number,
-    value?: ImageType | string,
-    multipleSelect?: boolean,
-    hasURLInput?: boolean
+interface BaseProps {
+    onClick?: () => void;
+    className?: string;
+    fileTypes?: string[];
+    maxSize?: number;
+    multipleSelect?: boolean;
+    hasURLInput?: boolean;
 }
-export default function ImageInput({ onChange = () => { }, onClick, className, fileTypes, maxSize, value, multipleSelect, hasURLInput }: Props) {
+
+// Define Props type with conditional onChange and value
+interface URLInputProps extends BaseProps {
+    hasURLInput: true;
+    onChange?: (value: File[] | string) => void;
+    value?: ImageType | string;
+}
+
+interface FileInputProps extends BaseProps {
+    hasURLInput?: false;
+    onChange?: (value: File[]) => void;
+    value?: ImageType;
+}
+
+export default function ImageInput({ onChange, onClick, className, fileTypes, maxSize, value, multipleSelect, hasURLInput }: URLInputProps | FileInputProps) {
 
     const [error, setError] = useState<string | null>(null)
     const [stateValue, setStateValue] = useState<string | undefined | ImageType>(undefined)
@@ -65,7 +77,7 @@ export default function ImageInput({ onChange = () => { }, onClick, className, f
                     return;
                 }
             })
-            onChange(files)
+            onChange?.(files)
         }
     }
 
@@ -76,7 +88,7 @@ export default function ImageInput({ onChange = () => { }, onClick, className, f
         } else {
             setError(null);
             setStateValue(e.target.value);
-            onChange(e.target.value)
+            hasURLInput && onChange?.(e.target.value);
         }
     }
 

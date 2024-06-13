@@ -18,6 +18,13 @@ const config = {
       },
     },
     extend: {
+      transitionTimingFunction: {
+        'in-slow-out-fast': 'cubic-bezier(1,0,1,1)',
+      },
+      fontFamily: {
+        heading: "var(--font-anton)",
+        body: "var(--font-source)",
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -71,6 +78,10 @@ const config = {
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        'slide-in-up': 'slide-in-up 0.4s cubic-bezier(0.43, 0.195, 0.02, 1) both',
+        'slide-out-down': 'slide-out-down 0.4s cubic-bezier(0.43, 0.195, 0.02, 1) both',
+        'fade-in': 'fade-in 0.3s cubic-bezier(0.43, 0.195, 0.02, 1) both',
+        'fade-out': 'fade-out 0.3s cubic-bezier(0.43, 0.195, 0.02, 1) both',
       },
     },
   },

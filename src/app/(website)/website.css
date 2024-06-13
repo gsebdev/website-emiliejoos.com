@@ -1,0 +1,156 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 25 100% 95%;
+    --foreground: 23 50% 65%;
+    --primary: 0 0% 0%;
+    --secondary: 0 0% 100%;
+  }
+
+  body {
+    @apply font-body bg-background text-primary;
+  }
+
+  body.menu-open {
+    overflow: hidden;
+    padding-right: var(--scrollbar-width);
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--background));
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--foreground));
+    border-radius: 4px;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-heading uppercase;
+  }
+  h1 {
+    @apply text-5xl md:text-8xl;
+  }
+  h2 {
+    @apply text-3xl md:text-5xl;
+  }
+
+  a:hover {
+    @apply underline;
+  }
+
+  [class^="btn-"] {
+    color: var(--btn-color);
+    background-color: var(--bg-color);
+    display: block;
+    width: fit-content;
+    mix-blend-mode: var(--btn-hover-mix-blend-mode);
+  }
+  [class^="btn-"]:hover {
+    --anim-timing: 0.2s cubic-bezier(0.01, 0.67, 0.28, 0.99);
+    transition: color var(--anim-timing), background-color var(--anim-timing);
+    background-color: var(--bg-hover-color);
+    color: var(--btn-hover-color);
+    text-decoration: none;
+  }
+
+  .btn-primary {
+    --btn-hover-mix-blend-mode: screen;
+    --btn-color: hsl(var(--background));
+    --btn-hover-color: black;
+    --bg-hover-color: hsl(var(--background));
+    --bg-color: transparent;
+
+    @apply font-heading text-3xl lg:text-5xl xl:text-7xl uppercase px-10 py-4;
+    box-shadow: inset 0 0 0 3px hsl(var(--background));
+  }
+
+  .btn-primary--menu {
+    --btn-hover-mix-blend-mode: multiply;
+    --btn-color: hsl(var(--primary));
+    --btn-hover-color: white;
+    --bg-hover-color: hsl(var(--primary));
+    --bg-color: transparent;
+
+    @apply font-heading text-2xl lg:text-4xl xl:text-6xl uppercase px-8 py-4;
+    box-shadow: inset 0 0 0 3px hsl(var(--primary));
+  }
+
+  .btn-secondary {
+    --btn-hover-mix-blend-mode: screen;
+    --btn-color: hsl(var(--secondary));
+    --btn-hover-color: black;
+    --bg-hover-color: hsl(var(--secondary));
+    --bg-color: transparent;
+
+    @apply font-body text-xl font-bold py-4 md:text-2xl px-12;
+    box-shadow: inset 0 0 0 3px var(--btn-color);
+  }
+  .btn-secondary--menu {
+    --btn-hover-mix-blend-mode: normal;
+    --btn-color: hsl(var(--background));
+    --btn-hover-color: hsl(var(--background));
+    --bg-hover-color: hsl(var(--primary));
+    --bg-color: hsl(var(--primary));
+
+    @apply font-body text-xl font-bold py-4 md:text-2xl px-8;
+    /*box-shadow: inset 0 0 0 3px var(--bg-hover-color);*/
+  }
+  .btn-secondary--menu:hover {
+    transition: transform 0.3s ease-in-out;
+    transform: scale(1.04);
+  }
+
+  .menu-nav {
+    transition: transform 0.4s cubic-bezier(0.43, 0.195, 0.02, 1);
+  }
+  .menu-toggler {
+    transition: transform 0.4s cubic-bezier(0.75, 0.15, 0.24, 1);
+  }
+
+  @keyframes slide-in-up {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slide-out-down {
+    from {
+      transform: translateY(0);
+    }
+    to {
+      transform: translateY(100%);
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes fade-out {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+}

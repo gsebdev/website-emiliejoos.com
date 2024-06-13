@@ -1,7 +1,8 @@
 'use client'
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronDown, CircleUser, Menu, StickyNote } from "lucide-react"
+import { ChevronDown, CircleUser, Menu, StickyNote } from "lucide-react";
+import './backoffice.css'
 
 import { Button } from "@/components/ui/button"
 
