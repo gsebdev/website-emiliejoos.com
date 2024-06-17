@@ -23,7 +23,7 @@ import {
     CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 
-import { Sheet, SheetClose, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { usePathname } from "next/navigation.js";
 import clsx from "clsx";
 import { Toaster } from "@/components/ui/sonner";
@@ -33,29 +33,13 @@ import { getLoggedInUser, selectUser } from "@/lib/slices/userSlice";
 import { useCallback, useEffect, useState } from "react";
 import Gallery from "@/components/modules/gallery";
 import { fetchImages, removeImage, selectAllImages, selectImagesStatus, setImage, setImageAlt, setImageSaving } from "@/lib/slices/imagesSlice";
-import { ImageType } from "@/lib/definitions";
+import { ImageType, PagesConfigInterface } from "@/lib/definitions";
 import { cn } from "@/lib/utils";
+import pagesConfigJson from "../../../pages.config.json";
+
+const pagesConfig: PagesConfigInterface = pagesConfigJson;
 
 let debounceTimeout: NodeJS.Timeout | null = null;
-
-export const pagesConfig: Record<string, { title: string, images_number: number }> = {
-    'a-propos': {
-        title: 'À propos',
-        images_number: 2
-    },
-    'osteopathie': {
-        title: 'Ostéopathie',
-        images_number: 7
-    },
-    'hypnose': {
-        title: 'Hypnose',
-        images_number: 2
-    },
-    'osteopathie-aquatique': {
-        title: 'Ostéopathie Aquatique',
-        images_number: 2
-    },
-}
 
 const navBackendLinks = [
     {

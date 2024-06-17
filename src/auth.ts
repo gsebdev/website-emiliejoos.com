@@ -1,4 +1,6 @@
 import { SignJWT, jwtVerify } from 'jose';
+import { cookies } from 'next/headers';
+
 export type UserType = {
     id: number;
     username: string;
@@ -28,3 +30,20 @@ export const verifyJwt = async (token: string | undefined) => {
     }
 };
 
+export async function setLoginCookie(token: string, user: any) {
+    const cookieData = JSON.stringify({
+        token,
+        firstname: user.firstname,
+        lastname: user.lastname,
+        username: user.username,
+        id: user.id
+    });
+
+    cookies().set('loggedUser', cookieData, {
+        maxAge: 7 * 24 * 60 * 60, // 7 days
+        path: '/',
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+    });
+}

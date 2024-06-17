@@ -83,7 +83,7 @@ export default function EditForm({ partner, afterSubmit, isLoading }: PartnerFor
 
     const onSubmit =  () => {
         const { title, url, logo, description, id, display_order } = form.getValues();
-        console.log(title, url, logo, description, id, display_order)
+
         dispatch(setPartner({
             partner: {
                 title,

@@ -1,0 +1,18 @@
+{
+  "a-propos": {
+    "title": "À propos",
+    "images_number": 2
+  },
+  "osteopathie": {
+    "title": "Ostéopathie",
+    "images_number": 7
+  },
+  "hypnose": {
+    "title": "Hypnose",
+    "images_number": 2
+  },
+  "osteopathie-aquatique": {
+    "title": "Ostéopathie Aquatique",
+    "images_number": 2
+  }
+}

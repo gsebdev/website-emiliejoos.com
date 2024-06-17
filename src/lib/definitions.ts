@@ -51,3 +51,10 @@ export type TestimonialType = {
     id: string,
     image: number
 }
+
+export interface PagesConfigInterface {
+    [key: string]: {
+      title: string;
+      images_number: number;
+    };
+  }

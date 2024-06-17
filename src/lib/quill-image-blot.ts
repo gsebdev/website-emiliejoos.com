@@ -9,7 +9,6 @@ class CustomImageBlot extends Embed {
 
     static create(value: any) {
         const node = super.create(value) as HTMLElement;
-        console.log(value);
         node.setAttribute('src', value.src);
         node.setAttribute('height', value.height);
         node.setAttribute('width', value.width);

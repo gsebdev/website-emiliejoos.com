@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import ImageInput from "@/components/ui/image-input"
-import { ImageType, PageType } from "@/lib/definitions";
+import { ImageType, PageType, PagesConfigInterface } from "@/lib/definitions";
 import { fetchPages, selectPageBySlug, setPage } from "@/lib/slices/pagesSlice";
 import { store } from "@/store";
 import { useParams } from "next/navigation";
@@ -19,7 +19,9 @@ import "quill/dist/quill.snow.css";
 import CustomImageBlot from "@/lib/quill-image-blot";
 import Quill from "quill";
 import { useGallery } from "@/components/modules/gallery";
-import { pagesConfig } from "../../layout";
+import pagesConfigJson from "../../../../../pages.config.json";
+
+const pagesConfig: PagesConfigInterface = pagesConfigJson;
 
 
 Quill.register('formats/customImage', CustomImageBlot);

@@ -1,22 +1,29 @@
+import { generateJwt, setLoginCookie } from "@/auth";
 import { getUserFromDB, logEvent } from "@/db";
-import { generateJwt } from "@/auth";
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import * as bcrypt from "bcrypt";
 
+
 export async function POST(request: NextRequest) {
-    const { username, password, redirectTo } = await request.json();
+
+    const { username, password } = await request.json();
+
     try {
+
         if (!username || !password) {
+
             logEvent(username, 'login', null, 'missing username or password', Date.now());
             return NextResponse.json({ error: 'Missing username or password' }, { status: 400 });
+
         }
 
         const users = await getUserFromDB(username);
 
         if (users.length !== 1) {
+
             logEvent(username, 'login', null, 'no found username', Date.now());
             return NextResponse.json({ error: 'Invalid username or password' }, { status: 401 });
+
         }
 
         const loggedUser = users[0];
@@ -24,8 +31,10 @@ export async function POST(request: NextRequest) {
         const passwordMatch = await verifyPassword(password, loggedUser.password);
 
         if (!passwordMatch) {
+
             logEvent(username, 'login', null, 'invalid password', Date.now());
             return NextResponse.json({ error: 'Invalid username or password' }, { status: 401 });
+
         }
 
         const token = await generateJwt({
@@ -49,28 +58,12 @@ export async function POST(request: NextRequest) {
     }
 };
 
-
-
-async function setLoginCookie(token: string, user: any) {
-    const cookieData = JSON.stringify({
-        token,
-        firstname: user.firstname,
-        lastname: user.lastname,
-        username: user.username,
-        id: user.id
-    });
-
-    cookies().set('loggedUser', cookieData, {
-        maxAge: 7 * 24 * 60 * 60, // 7 days
-        path: '/',
-        httpOnly: false,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-    });
-}
-
-const verifyPassword = async (password: string, hashedPassword: string) => {
-    console.log(password, hashedPassword)
+export const verifyPassword = async (password: string, hashedPassword: string) => {
     const isMatch = await bcrypt.compare(password, hashedPassword);
     return isMatch;
-}
+  }
+  
+  export const encodePassword = async (password: string) => {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    return hashedPassword;
+  }
