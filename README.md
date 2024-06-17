@@ -29,6 +29,7 @@ Make sure to set up your .env file with the necessary parameters before running 
 
 ## Scripts
 ```
+npm run install: Install tables and configure first admin user
 npm run dev: Start the development server
 ```
 ## Author
