@@ -1,7 +1,7 @@
 # Next.js Website with MySQL DB Connection
 
 ## Description
-This Next.js application is designed to work with a MySQL database using the mysql2 package. It utilizes an .env file to set the database parameters and the JWT secret key for authentication.
+This app is a website designed for an osteopathic practice, it has a admin back-office and works with a MySQL database using the mysql2 package. It utilizes an .env file to set the database parameters and the JWT secret key for authentication.
 
 # Routes
 - '/' is the front office base route
