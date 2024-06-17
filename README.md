@@ -1,36 +1,34 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Next.js App with MySQL2 Database Connection
+
+## Description
+This Next.js application is designed to work with a MySQL database using the mysql2 package. It utilizes an .env file to set the database parameters and the JWT secret key for authentication.
+
+# Routes
+- '/' is the front office website
+- '/backend' is the administration website
 
 ## Getting Started
-
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+To start development on this application, run the following command:
 ```
+npm run dev
+```
+Make sure to set up your .env file with the necessary parameters before running the application.
+### TODO: installation script to create the tables...
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Environment Variables
+Ensure you have the following environment variables set in your .env file:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+DB_HOST: Hostname for the MySQL database
+DB_USER: Username for the MySQL database
+DB_PASSWORD: Password for the MySQL database
+DB_DATABASE: Name of the MySQL database
+JWT_SECRET: Secret key for JWT authentication
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
 
-## Learn More
+## Scripts
+```
+npm run dev: Start the development server
+```
+## Author
+gsebdev
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
