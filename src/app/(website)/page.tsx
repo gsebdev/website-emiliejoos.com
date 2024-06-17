@@ -3,12 +3,41 @@ import { getBlurDataImage } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
 import { FaCalendarCheck } from "react-icons/fa6";
+import { navLinks } from "./layout";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { getImagesFromDB, getSettingFromDB } from "@/db";
+import TestimonialsCarousel from "@/components/modules/testimonials-carousel";
 
 export default async function Home() {
+  let testimonialsError = null;
+  let testimonials = null;
+
+  try {
+    const result = await getSettingFromDB('testimonials');
+
+    if (!result || !result.length) {
+      throw new Error();
+    }
+
+    if (Array.isArray(result[0].value) && result[0].value.length) {
+      testimonials = [];
+      for (const { image: imageID } of result[0].value) {
+        const imageResult = await getImagesFromDB(imageID);
+
+        if (imageResult && imageResult.length) {
+          testimonials.push(imageResult[0]);
+        }
+      }
+    }
+
+  } catch (error) {
+    testimonialsError = 'Oups quelques chose a mal tourné, veuillez recharger la page...';
+    testimonials = null;
+  }
 
   return (
     <>
-      <section className="h-screen relative">
+      <section data-menu-color="secondary" className="h-screen short:h-fit relative">
         <Image
           src="/bg/home-emilie-joos-1.jpg"
           className="absolute z-[-1] h-full w-full object-cover object-top"
@@ -20,38 +49,37 @@ export default async function Home() {
         />
         <div className="flex flex-col justify-around items-center h-full text-secondary">
           <div className="mt-24 md:mt-36">
-            <h1 className="pb-4 md:pb-12 lg:pb-24">Ostéopathe</h1>
+            <h1 className="pb-4 md:pb-12 lg:pb-24 text-secondary">Ostéopathe</h1>
             <BookingDialog>
-              <BookingDialogTrigger className="btn-secondary mx-auto flex gap-x-2 items-center"><FaCalendarCheck />Rendez-vous</BookingDialogTrigger>
-              <BookingDialogContent 
-              title="Prendre rendez-vous"
-              overlay
-              overlayClassName="bg-black bg-opacity-60"
-              className="lg:max-w-5xl lg:h-fit lg:max-h-[80vh] lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 text-primary"
-              showAnimationClassName="animate-slide-in-up lg:animate-fade-in"
-              hideAnimationClassName="animate-slide-out-down lg:animate-fade-out"
-              hideAnimationDuration={400}
-              showAnimationDuration={400}
+              <BookingDialogTrigger className="btn-secondary mx-auto flex gap-x-2 items-center short:mb-8 short: mt-4"><FaCalendarCheck />Rendez-vous</BookingDialogTrigger>
+              <BookingDialogContent
+                title="Prendre rendez-vous"
+                overlay
+                overlayClassName="bg-black bg-opacity-60"
+                className="lg:max-w-5xl lg:h-fit lg:max-h-[80vh] lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 text-primary"
+                showAnimationClassName="animate-slide-in-up lg:animate-fade-in"
+                hideAnimationClassName="animate-slide-out-down lg:animate-fade-out"
+                hideAnimationDuration={400}
+                showAnimationDuration={400}
               >
                 Salut
               </BookingDialogContent>
             </BookingDialog>
           </div>
 
-          <div className="h-full" style={{ maxHeight: "min(33vh, 50vw)" }}>
+          <div className="relative w-full h-[33vh]" style={{ maxHeight: "min(33vh, 50vw)" }}>
             <Image
               src="/logo/logo-white.png"
-              className="aspect-square h-full max-h-[500px] object-contain"
+              className="object-contain"
               sizes="(max-width: 768px) 50vw, 500px"
               alt="logo cabinet d'osteopathie Emilie Joos"
-              height={500}
-              width={500}
+              fill
             />
           </div>
 
         </div>
       </section>
-      <section className="h-screen relative flex justify-center items-center">
+      <section data-menu-color="secondary" className="h-screen short:h-fit relative flex justify-center items-center">
 
         <Image
           src="/bg/home-emilie-joos-2.jpg"
@@ -66,23 +94,50 @@ export default async function Home() {
         <div className="w-full max-h-full flex flex-col gap-y-8 justify-center lg:grid lg:grid-cols-2 p-12 items-center lg:pt-48 2xl:p-48">
           <nav className="contents">
             <ul className="contents lg:grid lg:gap-y-8 2xl:gap-y-16 lg:h-full justify-items-center lg:justify-items-start grid-rows-3">
-              <li><Link className="btn-primary" href={"/osteopathie"}>Ostéopathie</Link></li>
-              <li><Link className="btn-primary" href="/osteopathie-aquatique">Aquatique</Link></li>
-              <li><Link className="btn-primary" href="/hypnose">Hypnose</Link></li>
+              {
+                navLinks.map(
+                  ({ href, label }, index) => (
+                    index <= 2 ? <li key={href}><Link className="btn-primary" href={href}>{label}</Link></li> : null
+                  )
+                )
+              }
             </ul>
             <ul className="contents lg:grid lg:gap-y-8 2xl:gap-y-16 lg:h-full grid-rows-3 justify-items-center lg:justify-items-end">
-              <li><Link className="btn-primary" href="/news">News</Link></li>
-              <li><Link className="btn-primary" href="/le-cabinet">À propos</Link></li>
+              {
+                navLinks.map(
+                  ({ href, label }, index) => (
+                    index > 2 ? <li key={href}><Link className="btn-primary" href={href}>{label}</Link></li> : null
+                  )
+                )
+              }
             </ul>
           </nav>
 
         </div>
       </section>
-      <section className="h-screen relative bg-background">
-        <h2>Témoignages</h2>
+      <section data-menu-color="primary" className="min-h-[85vh] short:h-fit relative bg-background px-8 py-16 grid grid-cols-1 grid-rows-[auto_1fr] justify-items-center">
+        <div>
+          <h2 className="mb-8 text-3xl md:text-5xl text-center">"Bribes"</h2>
+          <div className="text-center font-heading text-lg p-8 my-8">
+            <p>Les <span className="text-xl uppercase">"Bribes"</span> c'est quoi ?</p>
+            <p>Ce sont des bouts de phrases que j'ai eu plaisir à entendre après la question classique de fin de séance: Comment ça va ?</p>
+            <p>Des morceaux empreints de vérité et de spontanéité, qui décrivent parfaitement vos perceptions corporelles.</p>
+          </div>
 
+        </div>
+
+        {
+          !!testimonialsError &&
+          <p className="text-center text-primary">{testimonialsError}</p>
+        }
+        {
+          !!testimonials ?
+            <TestimonialsCarousel testimonials={testimonials} />
+            :
+            <p className="text-center text-primary">Aucun témoignage n'a été publié</p>
+        }
       </section>
-      <section className="relative h-screen flex items-center justify-center">
+      <section data-menu-color="secondary" className="relative short:h-fit h-screen flex items-center justify-center">
         <Image
           src="/bg/home-emilie-joos-3.jpg"
           className="absolute z-[-1] h-full w-full object-cover object-top"

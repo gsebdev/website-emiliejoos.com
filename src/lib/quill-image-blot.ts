@@ -1,6 +1,6 @@
 import Quill from 'quill';
 
-const Embed = Quill.import('blots/block/embed');
+const Embed: any = Quill.import('blots/block/embed');
 
 class CustomImageBlot extends Embed {
     static blotName = 'customImage';

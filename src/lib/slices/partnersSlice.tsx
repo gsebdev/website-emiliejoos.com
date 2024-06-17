@@ -1,6 +1,5 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { Partner } from '../definitions';
-import { store } from '@/store';
 import { handleAsyncThunkError } from '../utils';
 import { toast } from 'sonner';
 

@@ -5,6 +5,11 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 import { Button } from "./button";
 import { Grip } from "lucide-react";
 import update from 'immutability-helper'
+import type { Identifier, XYCoord } from 'dnd-core'
+import type { FC } from 'react'
+
+
+
 export interface DragTableColumn {
     id: string,
     accessorKey?: string,
@@ -20,16 +25,12 @@ interface DragTableProps {
     caption?: string
     footer?: JSX.Element
     onReorder: (rows: any[]) => void
-    orderAccessorKey: string,
+    orderAccessorKey?: string,
     onRowDoubleClick?: (row: any) => void
 }
 
 
-import type { Identifier, XYCoord } from 'dnd-core'
-import type { FC } from 'react'
-
-
-export interface CardProps {
+interface CardProps {
     id: any
     columns: DragTableColumn[]
     row: { [key: string]: any }
@@ -137,9 +138,9 @@ const Row: FC<CardProps> = ({ id, row, columns, index, moveRow, onDrop, onDouble
     )
 }
 
-export default function DragTable({ rows, columns, caption, footer, onReorder, onRowDoubleClick }: DragTableProps) {
+export default function DragTable({ rows, columns, caption, footer, onReorder, onRowDoubleClick, orderAccessorKey }: DragTableProps) {
     const [rowsData, setRowsData] = useState<any[]>(rows);
-    
+
     useEffect(() => {
 
         // Check if the rows have changed. If they have, update the rowsData state.
@@ -148,13 +149,13 @@ export default function DragTable({ rows, columns, caption, footer, onReorder, o
         }
 
         // Check if any of the rows have changed since the last time the DragTable was rendered.
-        // If a row is not found in the current rowsData, or if any of its properties (except 'display_order') are different, return true.
+        // If a row is not found in the current rowsData, or if any of its properties (except orderAccessorKey) are different, return true.
         // If none of the rows have changed, return false.
         if(rows.some((row) => {
             const r = rowsData.find((r) => r.id === row.id);
             if(!r) return true;
             for(const property in row) {
-                if(row.hasOwnProperty(property) && property !== 'display_order' && row[property] !== r[property]) return true;
+                if(row.hasOwnProperty(property) && property !== orderAccessorKey && row[property] !== r[property]) return true;
             }
             return false;
         })) {

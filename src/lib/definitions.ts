@@ -26,6 +26,7 @@ export type ImageType = {
     width?: number,
     alt?: string,
     filename: string,
+    blur_data_image?: string,
     placeholderUrl?: string,
     uploadProgress?: number,
     isSaving?: boolean
@@ -38,4 +39,15 @@ export type PageType = {
     content: string,
     images_number: number,
     images: number[],
+}
+
+export type SettingType = {
+    id: number,
+    name: string,
+    value: string
+}
+
+export type TestimonialType = {
+    id: string,
+    image: number
 }

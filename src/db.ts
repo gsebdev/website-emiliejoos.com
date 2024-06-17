@@ -1,7 +1,9 @@
 import mysql, { ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 import { createError } from './app/api/utils';
-import { ImageType, PageType, Partner } from './lib/definitions';
+import { ImageType, PageType, Partner, SettingType } from './lib/definitions';
 import { cookies } from 'next/headers';
+import { getBlurDataImage } from './lib/utils';
+import DOMPurify from "isomorphic-dompurify";
 
 function errorHandlerDB(fn: Function, name?: string) {
     return async (...args: any[]) => {
@@ -207,9 +209,11 @@ export async function insertImageToDB(
             throw createError('Missing parameters', 400);
         }
 
-        const sql = 'INSERT INTO `images` (`filename`, `height`, `width`, `alt`, `src`) VALUES (?, ?, ?, ?, ?)';
+        const blurDataURL = await getBlurDataImage(src);
 
-        const [result] = await db.query<ResultSetHeader>(sql, [filename, height ?? 0, width, alt, src]);
+        const sql = 'INSERT INTO `images` (`filename`, `height`, `width`, `alt`, `src`, blur_data_image) VALUES (?, ?, ?, ?, ?, ?)';
+
+        const [result] = await db.query<ResultSetHeader>(sql, [filename, height ?? 0, width, alt, src, blurDataURL]);
 
         if (result.affectedRows === 0) {
             throw createError('Failed to insert image', 500);
@@ -559,7 +563,7 @@ export const updatePartnerInDB = errorHandlerDB(async (partner: Partner): Promis
  * @return {Promise<RowDataPacket[]>} A promise that resolves to an array of RowDataPacket objects representing the user(s) matching the provided username.
  * @throws {Error} If there are too many failed login attempts within the last 24 hours for the given username.
  */
-export async function getUserFromDB(username: string): Promise<RowDataPacket[]> {
+export const getUserFromDB = errorHandlerDB(async (username: string): Promise<RowDataPacket[]> => {
     const dayAgo = Date.now() - (60 * 60 * 24 * 1000);
     const db = await createConnection();
 
@@ -583,5 +587,91 @@ export async function getUserFromDB(username: string): Promise<RowDataPacket[]> 
         db.end();
 
     }
-}
+}, 'getUserFromDB');
 
+
+export const getSettingFromDB = errorHandlerDB(async (name: string): Promise<RowDataPacket[]> => {
+    const db = await createConnection();
+
+    try {
+        const sql = 'SELECT * FROM `settings` WHERE `name` = ?';
+        const [setting] = await db.query<RowDataPacket[]>(sql, [name]);
+
+        return setting;
+
+    } catch (error) {
+
+        throw error;
+
+    } finally {
+        db.end();
+    }
+}, 'getSettingFromDB');
+
+export const saveSettingInDB = errorHandlerDB(async (name: string, value: string): Promise<{ updated: SettingType, old: SettingType }> => {
+    const db = await createConnection();
+
+    try {
+        // Retrieve the setting data before updating
+        const [rows] = await db.query<RowDataPacket[]>('SELECT * FROM `settings` WHERE `name` = ?', [name]);
+
+        if (rows.length === 0) {
+            throw createError('Setting not found', 404);
+        }
+
+        const oldSettingData = rows[0] as SettingType;
+
+        // Update the setting
+        const [updateResult] = await db.query<ResultSetHeader>(
+            'UPDATE `settings` SET `value` = ? WHERE `name` = ?',
+            [JSON.stringify(value), name]
+        );
+
+        // Verify the update
+        if (updateResult.affectedRows === 0) {
+            throw createError('Failed to update setting', 500);
+        }
+
+         return {
+            updated: {
+                id: oldSettingData.id,
+                name,
+                value
+            },
+            old: oldSettingData
+        };
+
+    } catch (error) {
+
+        throw error;
+
+    } finally {
+        db.end();
+    }
+}, 'getSettingFromDB');
+
+export const getPageData = async (slug: string) => {
+
+    const result = await getPagesFromDB(slug);
+
+    if (!result || !result.length) {
+      return null;
+    }
+  
+    const page = { ...result[0], content: DOMPurify.sanitize(result[0].content) };
+  
+    if (page) {
+  
+      const images: ImageType[] = [];
+  
+      for (const imageID of page.images) {
+        const imageResult = await getImagesFromDB(imageID);
+        images.push(imageResult[0]);
+      }
+  
+      return { ...page, images: images };
+  
+    } else {
+      return null;
+    }
+  }

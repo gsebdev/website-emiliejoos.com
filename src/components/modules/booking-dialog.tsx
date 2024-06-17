@@ -119,7 +119,7 @@ export const BookingDialogContent: React.FC<BookingDialogContentProps> = ({
                     </button>
                 </div>
                 <div className="overflow-y-auto h-full">
-                    {children}
+                    <iframe className="w-full min-h-[50vh]" src="https://emiliejoos.com/rdv" />
                 </div>
 
             </div>

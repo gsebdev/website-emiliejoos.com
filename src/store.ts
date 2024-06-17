@@ -3,13 +3,15 @@ import { partnersReducer } from './lib/slices/partnersSlice';
 import { userReducer } from './lib/slices/userSlice';
 import { imagesReducer } from './lib/slices/imagesSlice';
 import { pagesReducer } from './lib/slices/pagesSlice';
+import { testimonialsReducer } from './lib/slices/testimonialsSlice';
 
 export const store = configureStore({
     reducer: {
         user: userReducer,
         partners: partnersReducer,
         images: imagesReducer,
-        pages: pagesReducer
+        pages: pagesReducer,
+        testimonials: testimonialsReducer
     },
 })
 

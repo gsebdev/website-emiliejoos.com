@@ -5,9 +5,10 @@
 @layer base {
   :root {
     --background: 25 100% 95%;
-    --foreground: 23 50% 65%;
+    --foreground: 351 65% 70% /*23 50% 65%*/;
     --primary: 0 0% 0%;
     --secondary: 0 0% 100%;
+    --accent: 351 39% 53%;
   }
 
   body {
@@ -41,10 +42,10 @@
     @apply font-heading uppercase;
   }
   h1 {
-    @apply text-5xl md:text-8xl;
+    @apply text-5xl md:text-7xl xl:text-8xl;
   }
   h2 {
-    @apply text-3xl md:text-5xl;
+    @apply text-2xl md:text-3xl xl:text-4xl;
   }
 
   a:hover {
@@ -81,11 +82,11 @@
     --btn-hover-mix-blend-mode: multiply;
     --btn-color: hsl(var(--primary));
     --btn-hover-color: white;
-    --bg-hover-color: hsl(var(--primary));
+    --bg-hover-color: hsl(var(--foreground));
     --bg-color: transparent;
 
     @apply font-heading text-2xl lg:text-4xl xl:text-6xl uppercase px-8 py-4;
-    box-shadow: inset 0 0 0 3px hsl(var(--primary));
+    box-shadow: inset 0 0 0 3px hsl(var(--foreground));
   }
 
   .btn-secondary {
@@ -102,8 +103,8 @@
     --btn-hover-mix-blend-mode: normal;
     --btn-color: hsl(var(--background));
     --btn-hover-color: hsl(var(--background));
-    --bg-hover-color: hsl(var(--primary));
-    --bg-color: hsl(var(--primary));
+    --bg-hover-color: hsl(var(--foreground));
+    --bg-color: hsl(var(--foreground));
 
     @apply font-body text-xl font-bold py-4 md:text-2xl px-8;
     /*box-shadow: inset 0 0 0 3px var(--bg-hover-color);*/
@@ -138,19 +139,29 @@
     }
   }
   @keyframes fade-in {
-    from {
+    0% {
+      opacity: 0;
+      visibility: hidden;
+    }
+    1% {
+      visibility: visible;
       opacity: 0;
     }
-    to {
+    100% {
       opacity: 1;
     }
   }
   @keyframes fade-out {
-    from {
+    0% {
       opacity: 1;
     }
-    to {
+    99% {
+      visibility: visible;
       opacity: 0;
+    }
+    100% {
+      opacity: 0;
+      visibility: hidden;
     }
   }
 }

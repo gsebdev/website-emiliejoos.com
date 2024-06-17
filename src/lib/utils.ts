@@ -53,3 +53,4 @@ export const getBlurDataImage = async (url: string) => {
 
   return `data:image/svg+xml;base64,${toBase64(blurSvg)}`;
 }
+

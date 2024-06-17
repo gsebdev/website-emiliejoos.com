@@ -18,6 +18,13 @@ const config = {
       },
     },
     extend: {
+      transitionDuration: {
+        '0': '0ms',
+        '75': '75ms',
+      },
+      screens: {
+        'short': { 'raw': '(max-height: 650px)' },
+      },
       transitionTimingFunction: {
         'in-slow-out-fast': 'cubic-bezier(1,0,1,1)',
       },
