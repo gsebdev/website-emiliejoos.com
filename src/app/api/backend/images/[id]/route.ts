@@ -1,5 +1,6 @@
-import { createError, handleError } from "@/app/api/utils";
-import { deleteImageFromDB, updateImageAlt } from "@/db";
+
+import { deleteImageFromDB, updateImageAlt } from "@/app/_lib/db";
+import { createResponseError, handleResponseError } from "@/app/_lib/utils";
 import { NextResponse } from "next/server";
 import fs from "node:fs/promises";
 
@@ -17,7 +18,7 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
         } catch(e) {
 
             console.error(e);
-            throw createError('Failed to delete image', 500);
+            throw createResponseError('Failed to delete image', 500);
     
         }
         
@@ -28,7 +29,7 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
 
     } catch (e) {
 
-        return handleError(e);
+        return handleResponseError(e);
 
     }
 }
@@ -51,7 +52,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         });
 
     } catch (e) {
-        return handleError(e);
+        return handleResponseError(e);
     }
 }
 

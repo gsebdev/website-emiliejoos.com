@@ -3,21 +3,21 @@ import sharp from 'sharp';
 import path from "node:path";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
-import { deleteImageFromDB, getImagesFromDB, insertImageToDB } from "@/db";
-import { createError, handleError } from "../../utils";
-import { ImageType } from "@/lib/definitions";
+import { deleteImageFromDB, getImagesFromDB, insertImageToDB } from "@/app/_lib/db";
+import { ImageType } from "@/app/_types/definitions";
+import { createResponseError, handleResponseError } from "@/app/_lib/utils";
 
 function validateImageFile(file: File) {
     const ext = path.extname(file.name).toLowerCase();
 
     // check if good format
     if (!(file instanceof File) || !['.jpg', '.jpeg', '.png', '.webp', '.svg'].includes(ext) || !file.type.startsWith('image/')) {
-        throw createError("Unsupported file format", 400);
+        throw createResponseError("Unsupported file format", 400);
     }
 
     //check file size
     if (file.size > 5 * 1024 * 1024) {
-        throw createError("File too large", 400);
+        throw createResponseError("File too large", 400);
     }
 
 }
@@ -46,7 +46,7 @@ async function saveImageOnServer(file: File) {
     } catch (e) {
 
         console.error(e)
-        throw createError("file data error", 500);
+        throw createResponseError("file data error", 500);
 
     }
 
@@ -84,7 +84,7 @@ export async function POST(req: Request) {
             }
         });
     } catch (e) {
-        return handleError(e);
+        return handleResponseError(e);
     }
 }
 
@@ -111,6 +111,6 @@ export async function GET() {
         });
 
     } catch (e) {
-        return handleError(e);
+        return handleResponseError(e);
     }
 }

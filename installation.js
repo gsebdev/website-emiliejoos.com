@@ -1,14 +1,14 @@
 const mysql = require("mysql2/promise");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const readLine = require("readline");
-const pagesConfig = require("./pages.config.json");
+const pagesConfig = require("./src/app/_config/pages.config.json");
 
 const queries = [
   `CREATE TABLE IF NOT EXISTS users (
         id INT NOT NULL AUTO_INCREMENT,
-        username VARCHAR(255) NOT NULL,
+        username VARCHAR(255) NOT NULL UNIQUE,
         password VARCHAR(255) NOT NULL,
-        email VARCHAR(255) NOT NULL,
+        email VARCHAR(255) NOT NULL UNIQUE,
         lastname VARCHAR(255) NOT NULL,
         firstname VARCHAR(255) NOT NULL,
         PRIMARY KEY (id)

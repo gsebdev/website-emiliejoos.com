@@ -1,71 +1,117 @@
-import { createError, handleError } from "@/app/api/utils";
-import { getPagesFromDB, updatePageInDB } from "@/db";
-import { RowDataPacket } from "mysql2";
+
+"use server"
+
+import { getPagesFromDB, updatePageInDB } from "@/app/_lib/db";
+import { pageFormSchema } from "@/app/_lib/form-shemas";
+import { createResponseError, handleResponseError } from "@/app/_lib/utils";
+import { PageType } from "@/app/_types/definitions";
 import { NextRequest, NextResponse } from "next/server";
+import pagesConfig from '@/app/_config/pages.config.json';
 
 interface SuccessResponse {
   success: true;
-  data: RowDataPacket;
+  data: Partial<PageType>;
 }
 
 export async function GET(req: NextRequest, { params }: { params: { slug: string } }) {
+
+  const { slug } = params;
+  const { title, images_number } = (pagesConfig as Record<string, Partial<PageType>>)[slug] || {};
+
   try {
 
-    validateGETParams(params);
-
-    const page = await getPagesFromDB(params.slug);
-
-    if (!page.length) {
-      throw createError('Page not found', 404);
+    if (!slug || !/^[a-zA-Z0-9_-]+$/.test(slug)) {
+      throw createResponseError('Page non trouvée', 404);
     }
 
-    return NextResponse.json<SuccessResponse>({ 
-        success: true, 
-        data: page[0] 
+    const pages = await getPagesFromDB(params.slug);
+
+    if (!pages.length) {
+      throw createResponseError('Page non trouvée', 404);
+    }
+
+    const parsedPage = pageFormSchema.safeParse(pages[0]);
+
+    if (title !== pages[0].title || images_number !== pages[0].images_number || !parsedPage.success) {
+      throw createResponseError('Erreur de validité des données', 500);
+    }
+
+    return NextResponse.json<SuccessResponse>({
+      success: true,
+      data: {
+        ...parsedPage.data,
+        slug,
+        title,
+        images_number
+      }
     });
   } catch (error) {
 
-    return handleError(error);
+    return handleResponseError(error);
 
   }
 }
 
-export async function PUT(req: Request, { params }: { params: { slug: string } }) {
-    
-    const { slug } = params;
+export async function PUT(
+  req: Request,
+  { params }: { params: { slug: string } }): Promise<NextResponse> {
 
-    try {
-        const { id, title, images, content, images_number} = await req.json();
+  const { slug } = params;
+  const { title, images_number } = (pagesConfig as Record<string, Partial<PageType>>)[slug] || {};
 
-        if(!slug || !title || !images || !content || !images_number || !id) {
-            throw createError('Données manquantes', 400);
-        }
+  try {
 
-        const { updated, old } = await updatePageInDB({
-            id: Number(id),
-            title: title as string,
-            images: images as Array<string>,
-            content: content as string,
-            images_number: Number(images_number),
-            slug: slug as string
-        });
+    //check if page record exists
+    const result = await getPagesFromDB(slug);
 
-        return NextResponse.json({
-            success: true,
-            data: updated,
-            prevState: old
-        });
-
-    } catch (e) {
-
-        return handleError(e);
-
+    if (result.length !== 1) {
+      throw createResponseError('Page non trouvée', 404);
     }
-}
 
-function validateGETParams(params: { slug: string }) {
-  if (!params.slug || typeof params.slug !== 'string') {
-    throw createError('Slug non valide', 400);
+    const { id } = result[0];
+
+    const requestData = await req.json();
+
+    // check data validity and sanitize it
+    const parsedData = pageFormSchema.safeParse(requestData);
+
+    if (!parsedData.success || parsedData.data?.id !== id) {
+      throw createResponseError('Erreur de validité des données', 400);
+    }
+
+    const { content, images } = parsedData.data;
+
+    // if no error, save it to database
+
+    const { updated, old } = await updatePageInDB({
+      id,
+      title,
+      images,
+      content,
+      images_number,
+      slug
+    });
+
+
+    // check if data is valid
+
+    const parsedUpdated = pageFormSchema.safeParse(updated);
+    const parsedOld = pageFormSchema.safeParse(old);
+
+    if (!parsedUpdated.success || !parsedOld.success) {
+      throw createResponseError('Page mise à jour mais a généré une erreur serveur', 500);
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: updated,
+      prevState: old
+    });
+
+  } catch (e) {
+
+    return handleResponseError(e);
+
   }
 }
 

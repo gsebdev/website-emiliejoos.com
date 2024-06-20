@@ -5,7 +5,7 @@
 @layer base {
   :root {
     --background: 25 100% 95%;
-    --foreground: 351 65% 70% /*23 50% 65%*/;
+    --foreground: 1 98% 79% /*351 65% 70%*/ ;
     --primary: 0 0% 0%;
     --secondary: 0 0% 100%;
     --accent: 351 39% 53%;
@@ -45,7 +45,7 @@
     @apply text-5xl md:text-7xl xl:text-8xl;
   }
   h2 {
-    @apply text-2xl md:text-3xl xl:text-4xl;
+    @apply text-3xl lg:text-5xl xl:text-7xl;
   }
 
   a:hover {

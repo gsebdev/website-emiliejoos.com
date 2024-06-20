@@ -1,33 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyJwt } from './auth';
-import { redirectToBackend, redirectToLogin } from './lib/utils';
+import { Auth } from './app/_lib/auth';
 
-
-
-
-export async function middleware(request: NextRequest) {
+export const middleware = async (request: NextRequest) =>{
   try {
-    const cookieData = request.cookies.get('loggedUser');
-    const isLoginPage = request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname === '/login';
+
+    const checkCsrf = (request.method !== 'GET');
+    
+    const {auth, responseNext } = await Auth.authenticate(checkCsrf);
+
     const isApi = request.nextUrl.pathname.startsWith('/api') || request.nextUrl.pathname === '/api';
-    let isLoggedIn = false;
 
-    if (cookieData) {
-      const { token } = JSON.parse(cookieData.value);
-
-      if (token) {
-        isLoggedIn = !! await verifyJwt(token);
-      }
+    if(!auth.isLoggedIn || !auth.currentUser) {
+        // if the user is not logged in, redirect to the login page
+        return isApi ? NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 }) : NextResponse.redirect(new URL('/login', process.env.BASE_URL));
     }
 
-    if (isLoggedIn && isLoginPage) return redirectToBackend();
-
-    if (!isLoggedIn && isApi) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    if (!isLoggedIn && !isLoginPage) return redirectToLogin(request.nextUrl.href);
+    return responseNext;
 
   } catch (error) {
-    console.error('Middleware error:', error);
+
+    return new NextResponse('Internal Server Error', { status: 500 });
   }
 }
 
@@ -35,8 +27,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/login',
-    '/backend/:path*',
+    '/backend/((?!login).*)',
     '/api/backend/:path*'
   ],
 };

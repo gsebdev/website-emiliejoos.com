@@ -1,12 +1,10 @@
-import { BookingDialog, BookingDialogContent, BookingDialogTrigger } from "@/components/modules/booking-dialog";
-import { getBlurDataImage } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
-import { FaCalendarCheck } from "react-icons/fa6";
-import { navLinks } from "./layout";
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
-import { getImagesFromDB, getSettingFromDB } from "@/db";
-import TestimonialsCarousel from "@/components/modules/testimonials-carousel";
+import navLinks from '@/app/_config/front.nav.links.config.json'
+import { getImagesFromDB, getSettingFromDB } from "../_lib/db";
+import { BookingDialog, BookingDialogContent, BookingDialogTrigger } from "./_components/booking-dialog";
+import TestimonialsCarousel from "./_components/testimonials-carousel";
+import { getBlurDataImage } from "../_lib/utils";
 
 export default async function Home() {
   let testimonialsError = null;
@@ -40,7 +38,7 @@ export default async function Home() {
       <section data-menu-color="secondary" className="h-screen short:h-fit relative">
         <Image
           src="/bg/home-emilie-joos-1.jpg"
-          className="absolute z-[-1] h-full w-full object-cover object-top"
+          className="absolute z-[-1] h-full w-full object-cover object-center"
           sizes="(100vw, 100vh)"
           alt="photo d'une femme de dos touchant ses homoplates après une séance d'ostéopathie"
           fill
@@ -49,9 +47,9 @@ export default async function Home() {
         />
         <div className="flex flex-col justify-around items-center h-full text-secondary">
           <div className="mt-24 md:mt-36">
-            <h1 className="pb-4 md:pb-12 lg:pb-24 text-secondary">Ostéopathe</h1>
+            <h1 className="pb-4 md:pb-12 lg:pb-24 text-secondary xl:text-9xl tracking-wide scale-x-110">Ostéopathie</h1>
             <BookingDialog>
-              <BookingDialogTrigger className="btn-secondary mx-auto flex gap-x-2 items-center short:mb-8 short: mt-4"><FaCalendarCheck />Rendez-vous</BookingDialogTrigger>
+              <BookingDialogTrigger className="btn-secondary mx-auto flex gap-x-2 items-center short:mb-8 short: mt-4">Rendez-vous</BookingDialogTrigger>
               <BookingDialogContent
                 title="Prendre rendez-vous"
                 overlay
@@ -117,10 +115,10 @@ export default async function Home() {
       </section>
       <section data-menu-color="primary" className="min-h-[85vh] short:h-fit relative bg-background px-8 py-16 grid grid-cols-1 grid-rows-[auto_1fr] justify-items-center">
         <div>
-          <h2 className="mb-8 text-3xl md:text-5xl text-center">"Bribes"</h2>
-          <div className="text-center font-heading text-lg p-8 my-8">
-            <p>Les <span className="text-xl uppercase">"Bribes"</span> c'est quoi ?</p>
-            <p>Ce sont des bouts de phrases que j'ai eu plaisir à entendre après la question classique de fin de séance: Comment ça va ?</p>
+          <h2 className="mb-8 text-center">Bribes</h2>
+          <div className="text-center text-xl p-8 my-8">
+            <p>Les &quot;BRIBES&quot; c&apos;est quoi ?</p>
+            <p>Ce sont des bouts de phrases que j&apos;ai eu plaisir à entendre après la question classique de fin de séance: Comment ça va ?</p>
             <p>Des morceaux empreints de vérité et de spontanéité, qui décrivent parfaitement vos perceptions corporelles.</p>
           </div>
 
@@ -134,7 +132,7 @@ export default async function Home() {
           !!testimonials ?
             <TestimonialsCarousel testimonials={testimonials} />
             :
-            <p className="text-center text-primary">Aucun témoignage n'a été publié</p>
+            <p className="text-center text-primary">Aucun témoignage n&apos;a été publié</p>
         }
       </section>
       <section data-menu-color="secondary" className="relative short:h-fit h-screen flex items-center justify-center">

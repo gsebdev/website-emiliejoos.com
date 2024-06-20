@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createError, handleError } from "../../utils";
-import { getSettingFromDB, saveSettingInDB } from "@/db";
+import { getSettingFromDB, saveSettingInDB } from "@/app/_lib/db";
+import { createResponseError, handleResponseError } from "@/app/_lib/utils";
 
 export async function GET() {
     try {
         const testimonials = await getSettingFromDB('testimonials');
 
         if (!testimonials || !testimonials.length) {
-            throw createError('No testimonials found', 404);
+            throw createResponseError('No testimonials found', 404);
         }
 
         return NextResponse.json({
@@ -16,7 +16,7 @@ export async function GET() {
         });
 
     } catch (e) {
-        return handleError(e);
+        return handleResponseError(e);
     }
 }
 
@@ -31,13 +31,13 @@ export async function POST(req: NextRequest) {
             !Array.isArray(data) ||
             data.some(val => typeof val !== 'object' || typeof val.image !== 'number' || typeof val.id !== 'string')
         ) {
-            throw createError('Invalid data', 400);
+            throw createResponseError('Invalid data', 400);
         }
 
         const responseData = await saveSettingInDB('testimonials', data);
 
         if (!responseData) {
-            throw createError('Failed to update testimonials', 500);
+            throw createResponseError('Failed to update testimonials', 500);
         }
 
         return NextResponse.json({
@@ -48,6 +48,6 @@ export async function POST(req: NextRequest) {
 
     } catch (e) {
 
-        return handleError(e);
+        return handleResponseError(e);
     }
 }
