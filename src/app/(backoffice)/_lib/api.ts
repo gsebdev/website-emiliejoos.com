@@ -59,7 +59,7 @@ export const fetchBackendApi = async (ressource: string, {
     body,
     headers
 }: fetchApiInterface) => {
-    return await fetchApi(`/backend/${ressource}`, {
+    return await fetchApi(`backend/${ressource}`, {
         method,
         body,
         headers

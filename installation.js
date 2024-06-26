@@ -56,6 +56,18 @@ const queries = [
         images_number INT NOT NULL,
         PRIMARY KEY (id)
     )`,
+    `CREATE TABLE IF NOT EXISTS posts (
+      id INT NOT NULL AUTO_INCREMENT,
+      slug VARCHAR(255) NOT NULL,
+      cover INT,
+      content JSON,
+      excerpt TEXT,
+      title VARCHAR(255) NOT NULL,
+      created_at DATETIME NOT NULL,
+      updated_at DATETIME NOT NULL,
+      display_order INT NOT NULL,
+      PRIMARY KEY (id)
+  )`,
 ];
 
 const InstallTables = async () => {

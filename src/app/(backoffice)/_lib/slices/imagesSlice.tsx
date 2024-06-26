@@ -258,7 +258,7 @@ export const setImageAlt = createAsyncThunk('images/setImageAlt', async ({ id, a
  * 
  */
 export const selectAllImages = (state: any): ImageType[] => state.images.items
-export const selectImageById = (id: number) => (state: any) => state.images.items.find((item: ImageType) => item.id === id)
+export const selectImageById = (id?: number|null) => (state: any) => state.images.items.find((item: ImageType) => item.id === id)
 export const selectImagesStatus = (state: any) => state.images.status
 export const selectImagesError = (state: any) => state.images.error
 export const selectImagesResolvedAction = (state: any) => state.images.resolvedAction

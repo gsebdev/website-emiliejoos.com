@@ -1,7 +1,7 @@
 import mysql, { ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 import { Auth } from './auth';
-import { ImageType, PageType, PartnerType, SettingType } from '../_types/definitions';
-import { createResponseError, getBlurDataImage } from './utils';
+import { ImageType, PageType, PartnerType, PostType, SettingType } from '../_types/definitions';
+import { createResponseError, getBlurDataImage, slugify } from './utils';
 
 
 export function errorHandlerDB(fn: Function, name?: string) {
@@ -17,12 +17,12 @@ export function errorHandlerDB(fn: Function, name?: string) {
             } else {
 
                 //log the error
-                const { currentUser: { username }} = Auth.getSession();
+                const { currentUser: { username } } = Auth.getSession();
 
                 const message = e instanceof Error ? e.message : 'Unknown error';
-                
+
                 await logEvent(username, name, null, message);
-                
+
                 throw createResponseError("Internal server error", 500);
             }
         }
@@ -94,7 +94,7 @@ export const countMissedLoginAttemps = errorHandlerDB(async (username: string, d
         if (!username) throw createResponseError('Error', 500);
 
         const [logs] = await db.query<RowDataPacket[]>('SELECT COUNT(*) as count FROM logs WHERE action="login" AND error IS NOT NULL AND username=? AND timestamp > ?', [username, duration]);
-        
+
         return logs[0];
 
     } catch (error) {
@@ -544,7 +544,7 @@ export const insertPartnerToDB = errorHandlerDB(async (partner: Partial<PartnerT
  * @throws {Error} If any of the required fields are missing or if the partner is not found or if there is an error updating the partner.
  */
 
-export const updatePartnerInDB = errorHandlerDB(async (partner: PartnerType): Promise<{ updated: PartnerType, old: PartnerType }> => {
+export const updatePartnerInDB = errorHandlerDB(async (partner: Partial<PartnerType>): Promise<{ updated: PartnerType, old: PartnerType }> => {
 
     if (!partner.id) {
         throw createResponseError('Missing required fields', 400);
@@ -557,7 +557,7 @@ export const updatePartnerInDB = errorHandlerDB(async (partner: PartnerType): Pr
         const [prevPartner] = await db.query<RowDataPacket[]>('SELECT * FROM `partners` WHERE id=?', [partner.id]);
 
         if (!prevPartner.length) {
-            throw createResponseError('PartnerType not found', 404);
+            throw createResponseError('Partner not found', 404);
         }
 
         const updatedPartner = { ...prevPartner[0], ...partner };
@@ -571,7 +571,7 @@ export const updatePartnerInDB = errorHandlerDB(async (partner: PartnerType): Pr
         }
 
         return {
-            updated: updatedPartner,
+            updated: updatedPartner as PartnerType,
             old: prevPartner[0] as PartnerType
         };
 
@@ -585,6 +585,211 @@ export const updatePartnerInDB = errorHandlerDB(async (partner: PartnerType): Pr
 
     }
 }, 'updatePartnerInDB');
+
+/**
+ * Updates a post in the database with the provided post object.
+ *
+ * @param {PostType} post - The post object containing the updated post details.
+ * @return {Promise<{ updated: PostType, old: PostType }>} A promise that resolves to an object containing the updated post and the previous post.
+ * @throws {Error} If any of the required fields are missing or if the post is not found or if there is an error updating the post.
+ */
+export const updatePostInDB = errorHandlerDB(async (post: Partial<PostType>): Promise<{ updated: PostType, old: PostType }> => {
+
+    if (!post.id || Object.keys(post).length < 2) {
+        throw createResponseError('Missing required fields', 400);
+    }
+
+    const db = await createConnection();
+
+    try {
+
+        const [prevPost] = await db.query<RowDataPacket[]>('SELECT * FROM `posts` WHERE id=?', [post.id]);
+
+        if (!prevPost.length) {
+            throw createResponseError('Post not found', 404);
+        }
+
+        const updatedPost = { ...prevPost[0], ...post };
+
+        updatedPost.updated_at = new Date();
+
+        const { title, slug, cover, excerpt, id, display_order, content, created_at, updated_at } = updatedPost;
+
+        const [result] = await db.query<ResultSetHeader>(
+            'UPDATE `posts` SET `title`=?, `slug`=?, `cover`=?, `excerpt`=?, `display_order`=?, `content`=?, `created_at`=?, `updated_at`=? WHERE id=?',
+            [title, slug, cover, excerpt, display_order, JSON.stringify(content), created_at, updated_at, id]);
+
+        if (result.affectedRows === 0) {
+            throw createResponseError('Failed to update post', 500);
+        }
+
+        return {
+            updated: updatedPost as PostType,
+            old: prevPost[0] as PostType
+        };
+
+    } catch (e) {
+
+        throw e;
+
+    } finally {
+
+        db.end();
+
+    }
+}, 'updatePostInDB');
+
+/**
+ * Inserts a post into the database.
+ *
+ * @param {PostType} post - The post object to be inserted.
+ * @return {Promise<{ success: boolean, data: PostType }>} A promise that resolves to an object containing the success flag and the inserted post data.
+ * @throws {Error} If any of the required fields are missing or if there is an error inserting the post.
+ */
+
+export const insertPostToDB = errorHandlerDB(async (post: PostType): Promise<{ success: boolean, data: PostType }> => {
+    const { title, cover, excerpt, content } = post;
+
+    if (!title) {
+        throw createResponseError('Missing required fields', 400);
+    }
+
+    const db = await createConnection();
+
+    try {
+        // Retrieve the maximum display order
+        const [rows] = await db.query<RowDataPacket[]>('SELECT MAX(`display_order`) as max_display_order FROM `posts`');
+
+        let display_order = 0;
+
+        if (rows.length === 1 || typeof rows[0].max_display_order === 'number') {
+            display_order = rows[0].max_display_order + 1;
+        }
+        // set values
+        const created_at = new Date();
+        const updated_at = new Date();
+
+        const slug = slugify(title);
+
+        // Insert the post
+
+        const [result] = await db.query<ResultSetHeader>(
+            'INSERT INTO `posts` (`title`, `slug`, `cover`, `excerpt`, `content`, `created_at`, `updated_at`, `display_order`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            [title, slug, cover, excerpt, JSON.stringify(content), created_at, updated_at, display_order]
+        );
+
+        if (result.affectedRows === 0) {
+            throw createResponseError('Failed to insert post', 500);
+        }
+
+        return {
+            success: true,
+            data: {
+                id: result.insertId,
+                title,
+                slug,
+                cover,
+                excerpt,
+                content,
+                created_at,
+                updated_at,
+                display_order
+            }
+        };
+
+    } catch (e) {
+
+        throw e;
+
+    } finally {
+
+        db.end();
+
+    }
+}, 'insertPostToDB');
+
+/**
+ * Retrieves posts from the database based on the provided ID and display order revalidation flag.
+ *
+ * @param {number | null} id - The ID of the post to retrieve. If not provided, all posts are retrieved.
+ * @param {boolean} revalidateDisplayOrder - Flag indicating whether to revalidate the display order of the posts.
+ * @return {Promise<RowDataPacket[]>} A promise that resolves to an array of posts.
+ * @throws {Error} If the ID is not a number or if no posts are found.
+ */
+export const getPostsFromDB = errorHandlerDB(async (id?: number | null, revalidateDisplayOrder?: boolean): Promise<RowDataPacket[]> => {
+    const db = await createConnection();
+
+    try {
+        if (id && typeof id !== 'number') {
+            throw createResponseError('Invalid id', 400);
+        }
+
+        let [posts] = await db.query<RowDataPacket[]>(`SELECT * FROM \`posts\` ${id ? 'WHERE id=?' : 'ORDER BY display_order ASC'}`, [id]);
+
+        if (revalidateDisplayOrder) {
+
+            posts = posts.map((p, i) => {
+                if (p.display_order !== i) {
+                    db.query<ResultSetHeader>('UPDATE `posts` SET display_order=? WHERE id=?', [i, p.id]);
+                    return { ...p, display_order: i };
+                }
+                return p;
+            });
+        }
+
+        return posts;
+
+    } catch (e) {
+
+        throw e;
+
+    } finally {
+
+        db.end();
+
+    }
+}, 'getPostFromDB');
+
+/**
+ * Get a post from the database.
+ *
+ * @param {number} id - The ID of the post to retrieve.
+ * @return {Promise<PostType>} A promise that resolves to the retrieved post.
+ * @throws {Error} If the ID is not a number or if no post is found.
+ */
+export const deletePostFromDB = errorHandlerDB(async (id: number): Promise<PostType> => {
+
+    if (!id || typeof id !== 'number') {
+        throw createResponseError('Invalid id', 400);
+    }    
+
+    const db = await createConnection();
+
+    try {
+        const [post] = await db.query<RowDataPacket[]>('SELECT * FROM `posts` WHERE id=?', [id]);
+
+        if (!post.length) {
+            throw createResponseError('Post non trouvé', 404);
+        }
+
+        const [result] = await db.query<ResultSetHeader>('DELETE FROM `posts` WHERE id=?', [id]);
+
+        if (result.affectedRows === 0) {
+            throw createResponseError('La suppression de ce post a échoué', 500);
+        }
+
+        return post[0] as PostType;
+
+    } catch (e) {
+
+        throw e;
+
+    } finally {
+
+        db.end();
+
+    }
+}, 'deletePostFromDB');
 
 /**
  * Retrieves a user from the database based on the provided username.
@@ -613,7 +818,13 @@ export const getUserFromDB = errorHandlerDB(async (username: string): Promise<Ro
     }
 }, 'getUserFromDB');
 
-
+/**
+ * Retrieves a setting from the database based on the provided name.
+ *
+ * @param {string} name - The name of the setting to retrieve.
+ * @return {Promise<RowDataPacket[]>} A promise that resolves to an array of RowDataPacket objects representing the setting(s) matching the provided name.
+ * @throws {Error} If there are too many failed login attempts within the last 24 hours for the given username.
+ */
 export const getSettingFromDB = errorHandlerDB(async (name: string): Promise<RowDataPacket[]> => {
     const db = await createConnection();
 

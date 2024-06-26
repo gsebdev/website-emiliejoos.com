@@ -3,15 +3,12 @@ import { handleAsyncThunkError } from '../utils';
 import { toast } from 'sonner';
 import { fetchBackendApi } from '../api';
 import { PartnerType } from '@/app/_types/definitions';
-
+import { sortByDisplayOrder } from '@/app/_lib/client-utils';
 
 
 /**
  * PartnerType State Definitions
- * 
- * 
  */
-
 export interface PartnerState {
     items: any[],
     status: 'idle' | 'loading' | 'succeeded' | 'failed',
@@ -19,13 +16,8 @@ export interface PartnerState {
 }
 
 /**
- * 
- * PartnerType Slice
- * 
- * 
+ * Partners Slice
  */
-const sortPartnersByDisplayOrder = (a: PartnerType, b: PartnerType) => a.display_order - b.display_order
-
 const { reducer: partnersReducer, actions } = createSlice({
 
     name: 'partners',
@@ -39,105 +31,122 @@ const { reducer: partnersReducer, actions } = createSlice({
     reducers: {},
     extraReducers: (builder) => {
         builder
-            .addCase(fetchPartners.pending, (state) => {
-                state.status = 'loading'
 
+            // Partners Async Thunks -- when pending
+            .addCase(fetchPartners.pending, (state) => {
+                state.status = 'loading';
             })
-            .addCase(fetchPartners.fulfilled, (state, action) => {
-                const { data } = action.payload;
-                if (!data) return;
-                if (Array.isArray(data)) {
-                    state.items = data
-                } else {
-                    state.items.push(data)
-                }
-                state.items.sort(sortPartnersByDisplayOrder)
-                state.status = 'succeeded'
+            .addCase(removePartner.pending, (state) => {
+                state.status = 'loading';
+            })
+            .addCase(setPartner.pending, (state) => {
+                state.status = 'loading';
+            })
+            .addCase(patchParners.pending, (state) => {
+                state.status = 'loading';
+            })
+
+            // Partners Async Thunks -- when rejected with an error
+            .addCase(patchParners.rejected, (state, action) => {
+                state.status = 'failed'
+                const { error } = action
+                state.error = error.message ?? 'Une erreur est survenue lors de la mise à jour des partenaires'
             })
             .addCase(fetchPartners.rejected, (state, action) => {
                 state.status = 'failed'
                 const { error } = action
                 state.error = error.message ?? 'Une erreur est survenue lors de la récupération des partenaires'
             })
-            .addCase(removePartner.pending, (state) => {
-                state.status = 'loading'
-            })
-            .addCase(setPartner.pending, (state) => {
-                state.status = 'loading'
-            })
-            .addCase(setPartner.fulfilled, (state, action) => {
-                const { data, prevState } = action.payload
-                if (!data) return;
-
-                const isNewPartner = prevState?.id ? false : true
-
-                if (isNewPartner) {
-                    state.items.push(data)
-                } else {
-                    state.items = state.items.map(partner =>
-                        partner.id === data.id ? data : partner
-                    )
-                }
-                state.items.sort(sortPartnersByDisplayOrder)
-                state.status = 'succeeded'
-            })
             .addCase(setPartner.rejected, (state, action) => {
                 state.status = 'failed'
                 const { error } = action
                 state.error = error.message ?? 'Une erreur est survenue lors de l\'ajout du partenaire'
-            })
-            .addCase(removePartner.fulfilled, (state, action) => {
-                const { prevState } = action.payload;
-                if (!prevState) return;
-                const { id } = prevState;
-                state.items = state.items.filter(partner =>
-                    partner.id !== id)
-                state.status = 'succeeded'
             })
             .addCase(removePartner.rejected, (state, action) => {
                 state.status = 'failed'
                 const { error } = action
                 state.error = error.message ?? 'Une erreur est survenue lors de la suppression du partenaire'
             })
-            .addCase(patchParners.pending, (state) => {
-                state.status = 'loading'
+
+            // Partners Async Thunks -- when fulfilled
+            .addCase(fetchPartners.fulfilled, (state, action) => {
+                const { data, isSingle } = action.payload;
+
+                if (!data) return;
+
+                if (!isSingle) {
+                    state.items = data
+
+                } else {
+                    const index = state.items.findIndex((item: PartnerType) => item.id === data.id)
+                    if (index !== -1) {
+                        state.items[index] = data
+                    } else {
+                        state.items.push(data)
+                    }
+                }
+
+                state.items.sort(sortByDisplayOrder);
+                state.status = 'succeeded';
+
+            })
+            .addCase(setPartner.fulfilled, (state, action) => {
+                const { data, isCreateNew } = action.payload
+                if (!data) return;
+
+                if (isCreateNew) {
+
+                    state.items.push(data);
+
+                } else {
+
+                    state.items = state.items.map(partner =>
+                        partner.id === data.id ? data : partner
+                    )
+
+                }
+
+                state.items.sort(sortByDisplayOrder);
+                state.status = 'succeeded';
+            })
+            .addCase(removePartner.fulfilled, (state, action) => {
+                const { prevState } = action.payload;
+                if (!prevState) return;
+
+                const { id } = prevState;
+                state.items = state.items.filter(partner => partner.id !== id);
+                state.status = 'succeeded';
             })
             .addCase(patchParners.fulfilled, (state, action) => {
-                const { data } = action.payload
-                if (!data) return
+                const { data } = action.payload;
+                if (!data) return;
+
                 state.items = state.items.map(partner => {
-                    const foudIndex = data.findIndex((p: PartnerType) => p.id === partner.id)
-                    if (foudIndex !== -1) {
-                        return data[foudIndex]
+                    const fIndex = data.findIndex((p: PartnerType) => p.id === partner.id)
+                    if (fIndex !== -1) {
+                        return data[fIndex]
                     }
                     return partner
                 });
-                state.items.sort(sortPartnersByDisplayOrder)
+
+                state.items.sort(sortByDisplayOrder)
                 state.status = 'succeeded'
-            })
-            .addCase(patchParners.rejected, (state, action) => {
-                state.status = 'failed'
-                const { error } = action
-                state.error = error.message ?? 'Une erreur est survenue lors de la mise à jour des partenaires'
             })
     }
 });
 
 
 /**
- * 
- * Partners Async Thunks -- fetch on Next JS server Actions
- * 
+ * Partners Async Thunks -- fetch on API
  */
-
-export const fetchPartners = createAsyncThunk("partners/fetchPartners", async () => {
-    const data = await fetchBackendApi(`partners`, {});
+export const fetchPartners = createAsyncThunk("partners/fetchPartners", async (id?: number) => {
+    const data = await fetchBackendApi(`partners${id ? `/${id}` : ''}`, {});
 
     if (!data.success) {
-        handleAsyncThunkError(`Failed to fetch partners: ${data.error}`);
+        handleAsyncThunkError(`Erreur de récupération des partenaires : ${data.error}`);
     }
 
-    return data;
+    return { ...data, isSingle: !!id };
 })
 
 export const removePartner = createAsyncThunk("partners/deletePartner", async ({ id, notification = true }: { id: number, notification?: boolean }, { dispatch }) => {
@@ -175,16 +184,11 @@ export const setPartner = createAsyncThunk('partners/setPartner', async ({ partn
 
     if (!title || !url || !logo || !description || typeof display_order !== 'number') handleAsyncThunkError('champs manquants');
 
-    const data = await fetchBackendApi(`partners${id ? `/${id}` : ""}`, {
-        method: id ? 'PUT' : 'POST',
-        body: JSON.stringify({
-            title,
-            url,
-            logo,
-            description,
-            id,
-            display_order
-        })
+    const isCreateNew = !id;
+
+    const data = await fetchBackendApi(`partners${!isCreateNew ? `/${id}` : ""}`, {
+        method: !isCreateNew ? 'PUT' : 'POST',
+        body: JSON.stringify(partner)
     });
 
     if (!data.success) handleAsyncThunkError(`Échec de l'enregistrement du partenaire : ${data.error}`);
@@ -195,7 +199,7 @@ export const setPartner = createAsyncThunk('partners/setPartner', async ({ partn
             action: {
                 label: 'Annuler',
                 onClick: () => {
-                    if (id) {
+                    if (!isCreateNew) {
                         dispatch(setPartner({
                             partner: data.prevState,
                             notification: false
@@ -210,10 +214,13 @@ export const setPartner = createAsyncThunk('partners/setPartner', async ({ partn
             }
         })
     }
-    return data;
+    return {
+        ...data,
+        isCreateNew
+    };
 })
 
-export const patchParners = createAsyncThunk('partners/reorderPartners', async ({ partners, notification = true }: { partners: Partial<PartnerType>[], notification?: boolean }, { dispatch }) => {
+export const patchParners = createAsyncThunk('partners/patchPartners', async ({ partners, notification = true }: { partners: Partial<PartnerType>[], notification?: boolean }, { dispatch }) => {
 
     if (!partners.length) handleAsyncThunkError('Aucun partenaire');
 
@@ -248,14 +255,12 @@ export const patchParners = createAsyncThunk('partners/reorderPartners', async (
 });
 
 /**
- * 
  * Partners selectors
- * 
  */
-export const selectAllPartners = (state: any) => state.partners.items
-export const selectPartnerById = (state: any, id: number) => state.partners.items.find((item: PartnerType) => item.id === id)
-export const selectPartnersStatus = (state: any) => state.partners.status
-export const selectError = (state: any) => state.partners.error
-export const selectResolvedAction = (state: any) => state.partners.resolvedAction
+export const selectAllPartners = (state: any) => state.partners.items;
+export const selectPartnerById = (state: any, id: number) => state.partners.items.find((item: PartnerType) => item.id === id);
+export const selectPartnersStatus = (state: any) => state.partners.status;
+export const selectError = (state: any) => state.partners.error;
+export const selectResolvedAction = (state: any) => state.partners.resolvedAction;
 
 export { partnersReducer }

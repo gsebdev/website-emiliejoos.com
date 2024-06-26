@@ -47,6 +47,18 @@ export type SettingType = {
     value: string
 }
 
+export type PostType = {
+    id?: number,
+    title?: string,
+    excerpt?: string,
+    content?: BlockType[]|null,
+    cover?: number|null,
+    slug?: string,
+    created_at?: Date,
+    updated_at?: Date,
+    display_order?: number,
+}
+
 export type TestimonialType = {
     id: string,
     image: number
@@ -63,3 +75,9 @@ export interface ErrorResponse {
     success: false;
     error: string;
 }
+
+export type BlockType = {
+    type: "row" | "text" | "image";
+    value?: string | number;
+    children?: BlockType[];
+};

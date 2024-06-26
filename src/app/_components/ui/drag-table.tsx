@@ -104,7 +104,6 @@ const Row: FC<CardProps> = ({ id, row, columns, index, moveRow, onDrop, onDouble
             item.index = hoverIndex
         },
         drop() {
-            console.log("DROP" , isMutating)
             setIsMutating(true);
 
             ( async () => {
@@ -147,7 +146,7 @@ const Row: FC<CardProps> = ({ id, row, columns, index, moveRow, onDrop, onDouble
     )
 }
 
-export default function DragTable({ rows, columns, caption, footer, onReorder, onRowDoubleClick, orderAccessorKey }: DragTableProps) {
+export default function DragTable({ rows, columns, caption, footer, onReorder, onRowDoubleClick }: DragTableProps) {
     const [rowsData, setRowsData] = useState<any[]>(rows);
 
     useEffect(() => {

@@ -7,6 +7,7 @@ import { PartnerState, partnersReducer } from './slices/partnersSlice';
 import { ImagesState, imagesReducer } from './slices/imagesSlice';
 import { PagesState, pagesReducer } from './slices/pagesSlice';
 import { TestimonialState, testimonialsReducer } from './slices/testimonialsSlice';
+import { PostsState, postsReducer } from './slices/postsSlice';
 
 export interface RootStateInterface {
     auth: AuthState
@@ -14,7 +15,8 @@ export interface RootStateInterface {
     partners: PartnerState
     images: ImagesState
     pages: PagesState
-    testimonials: TestimonialState
+    testimonials: TestimonialState,
+    posts: PostsState
 }
 
 const initialStoreState = {
@@ -50,6 +52,11 @@ const initialStoreState = {
         status: "idle",
         items: [],
         error: null
+    },
+    posts: {
+        items: [],
+        status: 'idle',
+        error: null
     }
 } as RootStateInterface
 
@@ -64,7 +71,8 @@ export const initializeStore = (preloadedState?: any) => {
         partners: partnersReducer,
         images: imagesReducer,
         pages: pagesReducer,
-        testimonials: testimonialsReducer
+        testimonials: testimonialsReducer,
+        posts: postsReducer
     })
 
     const reducer = (state: any, action: any) => {
