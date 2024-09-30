@@ -11,20 +11,33 @@ const textBlockSchema = z.object({
     value: z.string().transform((value) => DOMPurify.sanitize(value)).optional(),
 });
 
-const imageBlockSchema = z.object({
-    type: z.literal('image'),
+const spaceBlockSchema = z.object({
+    type: z.literal('space'),
     value: z.number().positive().optional(),
 });
 
-const rowBlockSchema = z.object({
-    type: z.literal('row'),
+const imageBlockSchema = z.object({
+    type: z.literal('image'),
+
+    value: z.object({
+        imageId : z.number().positive(),
+        size: z.enum(['small','medium','large', 'full']).optional(),
+        aspect: z.enum(['4/3','16/9','3/2', '1/1', 'fill']).optional(),
+        align: z.enum(['left','right','center']).optional(),
+    })
+});
+
+const groupBlockSchema = z.object({
+    type: z.literal('group'),
+    value: z.enum(['horizontal','vertical']).optional(),
     children: z.lazy(() => z.array(blockSchema))
 });
 
 const blockSchema: z.ZodType<BlockType> = z.discriminatedUnion('type', [
     textBlockSchema,
     imageBlockSchema,
-    rowBlockSchema,
+    groupBlockSchema,
+    spaceBlockSchema,
 ]);
 
 
@@ -104,7 +117,7 @@ export const postFormSchema = z.object({
         .nullable()
         .optional(),
 
-    excerpt: z.string().regex(/^[a-zA-Z0-9_.,:;!?\/&()|#"'$€*%§µ²+À-ÿ\s]+$|^$/, {
+    excerpt: z.string().regex(/^[a-zA-Z0-9_.,:;\@\-\!\?\/&()|\#"'$€*\%§µ²+À-ÿ’\s]+$/, {
         message: 'Caractères interdits dans le résumé'
     }).transform((value) => DOMPurify.sanitize(value)).optional(),
 

@@ -51,8 +51,8 @@ export type PostType = {
     id?: number,
     title?: string,
     excerpt?: string,
-    content?: BlockType[]|null,
-    cover?: number|null,
+    content?: BlockType[] | null,
+    cover?: number | null,
     slug?: string,
     created_at?: Date,
     updated_at?: Date,
@@ -77,7 +77,14 @@ export interface ErrorResponse {
 }
 
 export type BlockType = {
-    type: "row" | "text" | "image";
-    value?: string | number;
+    type: "group" | "text" | "image" | "space";
+    value?: string | number | { [key: string]: any };
     children?: BlockType[];
 };
+
+export type BlockValueByType<T extends BlockType> =
+    T extends { type: "group" } ? undefined | "horizontal" | "vertical" :
+    T extends { type: "text" } ? string :
+    T extends { type: "image" } ? { [key: string]: any } :
+    T extends { type: "space" } ? number :
+    never;

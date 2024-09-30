@@ -22,6 +22,19 @@ const config = {
         '0': '0ms',
         '75': '75ms',
       },
+      aspectRatio: {
+        '16/9': '16 / 9',
+        '3/2': '3 / 2',
+      },
+      gridAutoColumns: {
+        '1fr': 'minmax(50px, 1fr)',
+      },
+      gridAutoRows: {
+        '1fr': '1fr',
+      },
+      gridTemplateColumns: {
+        'auto': 'repeat(auto-fit, minmax(0px, 1fr))',
+      },
       screens: {
         'short': { 'raw': '(max-height: 650px)' },
       },

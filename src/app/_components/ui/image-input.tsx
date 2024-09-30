@@ -93,11 +93,11 @@ export default function ImageInput({ onChange, onClick, className, fileTypes, ma
     }
 
     return (
-        <div>
+        <div className="grid">
             <div
                 onClick={onClick}
                 className={cn(
-                    `cursor-pointer relative h-64 ${stateValue ? "w-fit" : "w-64"} border-2 border-dashed rounded-md flex flex-col justify-between items-center p-2 `,
+                    `cursor-pointer relative h-64 ${stateValue ? "w-fit" : "w-64"} border-2 bg-background border-dashed rounded-md flex flex-col justify-between items-center p-2 `,
                     className
                 )}
             >

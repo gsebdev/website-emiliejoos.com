@@ -12,7 +12,6 @@ export default function NewPost() {
         <Card>
             <CardHeader className="flex-row justify-between flex-wrap items-center">
                 <CardTitle>Nouvelle Publication</CardTitle>
-                <Button variant={"outline"} onClick={() => router.push("/backend/posts")}>Annuler</Button>
             </CardHeader>
 
             <CardContent>

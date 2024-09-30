@@ -1,10 +1,10 @@
 import { Button } from "@/app/_components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel } from "@/app/_components/ui/dropdown-menu"
 import ImageInput from "@/app/_components/ui/image-input"
-import { BlockType } from "@/app/_types/definitions"
+import { BlockType, BlockValueByType } from "@/app/_types/definitions"
 import { DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu"
 import { Plus } from "lucide-react"
-import { Dispatch, MouseEventHandler, MutableRefObject, ReactElement, RefObject, SetStateAction, createContext, forwardRef, useCallback, useContext, useEffect, useImperativeHandle, useRef, useState } from "react"
+import { Dispatch, MouseEventHandler, ReactElement, SetStateAction, createContext, forwardRef, useCallback, useContext, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from "react"
 import { useQuill } from "react-quilljs"
 import { useGallery } from "./gallery"
 import { useSelector } from "react-redux"
@@ -14,7 +14,11 @@ import { FaAlignJustify } from "react-icons/fa6";
 import { RxGroup } from "react-icons/rx";
 import clsx from "clsx"
 import { cn } from "@/app/_lib/client-utils"
-import { MdCenterFocusStrong } from "react-icons/md";
+import { MdAlignHorizontalLeft, MdAlignHorizontalRight, MdAlignHorizontalCenter, MdCenterFocusStrong, MdOutlinePhotoSizeSelectSmall, MdOutlinePhotoSizeSelectLarge, MdOpenInFull, MdOutlinePhotoSizeSelectActual, MdOutlineAspectRatio } from "react-icons/md";
+import { Slider } from "@/app/_components/ui/slider"
+import { BsArrowsExpand, BsArrowsExpandVertical } from "react-icons/bs";
+
+
 
 interface BlocksEditorProps {
     data?: BlockType[] | null,
@@ -76,6 +80,30 @@ const BlocksEditorContextProvider = forwardRef<EditorRefObject, EditorProviderPr
     }))
 
     useEffect(() => {
+        const blocksThatShouldHaveFocusWithin: string[] = [];
+
+        if (activeBlock) {
+            // find all blocks that should have focus within
+            const activeBlockParent = blocks.get(activeBlock)?.parentID;
+            let nParentBlock: EditorParsedBlock | undefined = activeBlockParent ? blocks.get(activeBlockParent) : undefined;
+            while (nParentBlock) {
+                console.log('setting focus within', nParentBlock?.blockID, nParentBlock?.hasFocusWithin);
+                blocksThatShouldHaveFocusWithin.push(nParentBlock.blockID);
+                nParentBlock = nParentBlock.parentID ? blocks.get(nParentBlock.parentID) : undefined;
+            }
+        }
+
+        // update necessary blocks to have focus within
+        blocks.forEach((block) => {
+            if (blocksThatShouldHaveFocusWithin.includes(block.blockID)) {
+                if (!block.hasFocusWithin) updateBlock(block.blockID, { hasFocusWithin: true }, true)
+            } else {
+                if (block.hasFocusWithin) updateBlock(block.blockID, { hasFocusWithin: false }, true)
+            }
+        });
+    }, [activeBlock, blocks])
+
+    useEffect(() => {
         setRenderedBlocks(data);
         // parse blocks and set initital state
         if (data) {
@@ -100,7 +128,6 @@ const BlocksEditorContextProvider = forwardRef<EditorRefObject, EditorProviderPr
             }
 
             data.forEach(b => parseBlocks(b));
-            console.log('parse')
 
             setBlocks(initialBlocks);
         }
@@ -112,7 +139,7 @@ const BlocksEditorContextProvider = forwardRef<EditorRefObject, EditorProviderPr
                 if (b.children && Array.isArray(b.children)) {
                     return {
                         type: b.type,
-                        value: undefined,
+                        value: b.value,
                         children: b.children.map(child => {
                             const childBlock = blocks.get(child);
                             if (childBlock) {
@@ -157,7 +184,7 @@ const BlocksEditorContextProvider = forwardRef<EditorRefObject, EditorProviderPr
                     value: type === 'text' ? '<p>Bloc de texte<p>' : undefined,
                     blockID,
                     parentID,
-                    children: type === 'row' ? [] : undefined
+                    children: type === 'group' ? [] : undefined
                 }]);
 
             // When parentID is provided, we insert the new block as a child of that parent
@@ -196,11 +223,15 @@ const BlocksEditorContextProvider = forwardRef<EditorRefObject, EditorProviderPr
     }, []);
 
     const deleteBlock = useCallback((blockID: string) => {
+        let newSelectedBlock: string | null = null;
+
         setBlocks(prevBlock => {
             const newBlocks = new Map(prevBlock);
             const blockToDelete = newBlocks.get(blockID);
 
             if (!blockToDelete) return newBlocks;
+
+            if(blockToDelete?.parentID) newSelectedBlock = blockToDelete.parentID;
 
             const IDsToDelete: string[] = []
 
@@ -233,6 +264,7 @@ const BlocksEditorContextProvider = forwardRef<EditorRefObject, EditorProviderPr
 
             return newBlocks;
         });
+        setActiveBlock(newSelectedBlock);
         setIsDirty(true);
     }, []);
 
@@ -263,7 +295,8 @@ const AddBlockContextMenu: React.FC<{ className?: string, args?: { parentID?: st
                     <DropdownMenuLabel>Choisir un type</DropdownMenuLabel>
                     <DropdownMenuItem onClick={() => addBlock('text', args)}><FaAlignJustify className="mr-2" />Texte</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => addBlock('image', args)}><FaRegImage className="mr-2" />Image</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => addBlock('row', args)}><RxGroup className="mr-2" />Row</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => addBlock('group', args)}><RxGroup className="mr-2" />Groupe</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => addBlock('space', args)}><RxGroup className="mr-2" />Espace</DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
         </div>
@@ -275,22 +308,39 @@ const BlockEditorContent: React.FC = () => {
     const { blocks, setActiveBlock } = useEditor();
     const editorRef = useRef<HTMLDivElement>(null);
 
-    const handleClickOutside = useCallback((e: Event) => {
-        if (editorRef.current && !editorRef.current.contains(e.target as Node|null)) {
-            setActiveBlock(null);
+    const handleClickOutside = useCallback((e: MouseEvent) => {
+        if (editorRef.current) {
+            const rect = editorRef.current.getBoundingClientRect();
+            const x = e.clientX;
+            const y = e.clientY;
+            const margin = 100;
+
+            if (
+                !(
+                    x >= rect.left - margin &&
+                    x <= rect.right + margin &&
+                    y >= rect.top - margin &&
+                    y <= rect.bottom + margin
+                )
+            ) {
+                setActiveBlock(null);
+            }
         }
     }, [setActiveBlock]);
 
     useEffect(() => {
-        document.addEventListener('click', handleClickOutside);
+        document.body.addEventListener('click', handleClickOutside);
         return () => {
-            document.removeEventListener('click', handleClickOutside);
+            document.body.removeEventListener('click', handleClickOutside);
         };
     }, [handleClickOutside]);
 
 
     return (
-        <div ref={editorRef} className="border-2 border-dashed rounded-md p-4 min-h-72 grid items-center justify-items-center">
+        <div ref={editorRef} className={clsx(
+            "border-2 border-dashed rounded-md p-4 grid items-center justify-items-center bg-background",
+            blocks.size === 0 && "min-h-72"
+        )}>
             {!!blocks &&
                 Array.from(blocks.values()).filter(block => !block.parentID).map(block => (
                     <Block key={block.blockID} block={block} />
@@ -318,15 +368,9 @@ const Block: React.FC<{ block: EditorParsedBlock | undefined, className?: string
             e.preventDefault();
             e.stopPropagation();
 
-            const prevBlock = blocks.get(activeBlock ?? '');
-            if (prevBlock && prevBlock.parentID && prevBlock.parentID !== parentID) {
-                updateBlock(prevBlock.parentID, { hasFocusWithin: false }, true);
-            }
-
             setActiveBlock(blockID ?? null);
-            if (parentID) updateBlock(parentID, { hasFocusWithin: true }, true);
         }
-    }, [activeBlock, updateBlock, hasFocusWithin, blockID, parentID, setActiveBlock, blocks]);
+    }, [activeBlock, hasFocusWithin, blockID, setActiveBlock]);
 
     if (!block) return null;
 
@@ -342,12 +386,12 @@ const Block: React.FC<{ block: EditorParsedBlock | undefined, className?: string
             onClickCapture={handleClickCapture}
         >
             {!!isActive &&
-                <div className="absolute z-20 top-2 left-1/2 -translate-x-1/2 -translate-y-full grid gap-2 justify-items-center">
+                <div className="absolute z-20 top-2 left-1/2 -translate-x-1/2 -translate-y-24 md:-translate-y-16 grid gap-2 justify-items-center">
                     <AddBlockContextMenu
                         args={{ position: 'before', reference: blockID, parentID }}
                         className="m-0"
                     >
-                        <Button variant={'outline'}><Plus className="mr-2" />Ajouter avant</Button>
+                        <Button variant={'outline'}><Plus className="md:mr-2" /><span className="hidden md:block">Ajouter avant</span></Button>
                     </AddBlockContextMenu>
 
 
@@ -356,22 +400,24 @@ const Block: React.FC<{ block: EditorParsedBlock | undefined, className?: string
 
             {block.type === 'text' && <TextBlock block={block} isActive={isActive} />}
             {block.type === 'image' && <ImageBlock block={block} isActive={isActive} />}
-            {block.type === 'row' && <RowBlock block={block} isActive={isActive} />}
+            {block.type === 'group' && <RowBlock block={block} isActive={isActive} />}
+            {block.type === 'space' && <SpaceBlock block={block} isActive={isActive} />}
 
             {!!isActive &&
-                <div className="absolute z-20 bottom-2 left-1/2 -translate-x-1/2 translate-y-full grid gap-2 justify-items-center">
+                <div className="absolute z-20 bottom-2 left-1/2 -translate-x-1/2 translate-y-24 grid gap-2 justify-items-center">
+                    <button
+                        className="px-4 md:px-2 py-2 md:py-1 text-xs bg-red-500 rounded-md text-white"
+                        onClick={() => deleteBlock(blockID)}
+                    >
+                        Supprimer<span className="hidden md:inline"> l&apos;élément</span>
+                    </button>
                     <AddBlockContextMenu
                         args={{ position: 'after', reference: blockID, parentID }}
                         className="m-0"
                     >
-                        <Button variant={'outline'}><Plus className="mr-2" />Ajouter après</Button>
+                        <Button variant={'outline'}><Plus className="md:mr-2" /><span className="hidden md:block">Ajouter après</span></Button>
                     </AddBlockContextMenu>
-                    <button
-                        className="px-2 py-1 text-xs bg-red-500 rounded-md text-white w-fit"
-                        onClick={() => deleteBlock(blockID)}
-                    >
-                        Supprimer l&apos;élément
-                    </button>
+
 
                 </div>
             }
@@ -419,16 +465,18 @@ const TextBlock: React.FC<{ block: EditorParsedBlock, isActive?: boolean }> = ({
     return (
         <>
             <div className={clsx(
-                "contents",
+                "grid min-h-48",
                 isActive ? "visible" : 'invisible'
             )}>
                 <div ref={quillRef} />
             </div>
-
             <div className={clsx(
-                "absolute",
-                !isActive ? "visible" : 'invisible'
-            )} dangerouslySetInnerHTML={{ __html: String(value ?? '') }} />
+                "absolute w-full h-full border border-dotted",
+                !isActive ? "ql-snow visible" : "invisible"
+            )}>
+                <div className={"ql-editor"} dangerouslySetInnerHTML={{ __html: String(value ?? '') }} />
+            </div>
+
         </>);
 }
 
@@ -436,35 +484,139 @@ const ImageBlock: React.FC<{ block: EditorParsedBlock, isActive?: boolean }> = (
 
     const { updateBlock } = useEditor();
 
-    const { blockID, value } = block;
+    const { blockID, value } = block as Omit<EditorParsedBlock, 'value'> & { value: BlockValueByType<{ type: 'image' }> };
 
-    const image = useSelector(selectImageById(Number(value)))
+    const { imageId, aspect, size, align } = value ?? {};
+
+    const image = useSelector(selectImageById(Number(imageId)))
 
     const { setGalleryOpen } = useGallery();
 
-    return <ImageInput
-        className="w-full"
-        value={image}
-        onClick={() => setGalleryOpen({
-            selection: [Number(value)],
-            onValidateSelection: (selected) => {
-                if (!selected?.[0]?.id) return;
-                updateBlock(blockID, { value: selected?.[0].id })
+    const updateImageBlock = (newValue: Partial<BlockValueByType<{ type: 'image' }>>) => {
+        updateBlock(blockID, {
+            value: {
+                ...value,
+                ...newValue
             }
         })
-        }
-    />
+    };
+
+    const sizes = ['small', 'medium', 'large', 'full'];
+    const sizesIcons = [
+        <MdOutlinePhotoSizeSelectSmall />,
+        <MdOutlinePhotoSizeSelectLarge />,
+        <MdOutlinePhotoSizeSelectActual />,
+        <MdOpenInFull />
+    ];
+
+    const aspects = ['fill', '4/3', '3/2', '16/9', '1/1'];
+    const aspectsLabels = [<MdOpenInFull />, '4:3', '3:2', '16:9', '1/1'];
+
+    const aligns = ['left', 'center', 'right'];
+    const alignsIcons = [
+        <MdAlignHorizontalLeft />,
+        <MdAlignHorizontalCenter />,
+        <MdAlignHorizontalRight />
+    ];
+
+
+    return (
+        <div className="relative">
+            <div className={cn(
+                "absolute grid gap-y-2 z-10 top-1/2 -translate-y-1/2 -translate-x-1/2 md:translate-x-0",
+                !isActive ? "hidden" : ''
+            )}>
+                {sizes.map((value, index) => (
+                    <Button
+                        key={value}
+                        variant={size === value ? undefined : "outline"}
+                        onClick={() => updateImageBlock({ size: size === value ? undefined : value })}
+                    >
+                        {sizesIcons[index]}
+                    </Button>
+                ))}
+            </div>
+            <div className={cn(
+                "absolute top-1/2 right-0 translate-x-1/2 md:translate-x-0 -translate-y-1/2 z-10 grid gap-y-2",
+                !isActive ? "hidden" : ''
+            )}>
+                {
+                    aspects.map((value, index) => (
+                        <Button
+                            key={value}
+                            variant={aspect === value ? undefined : "outline"}
+                            onClick={() => updateImageBlock({ aspect: aspect === value ? undefined : value })}
+                        >
+                            {aspectsLabels[index]}
+                        </Button>
+                    ))
+                }
+            </div>
+            <div className={cn(
+                "absolute left-1/2 -translate-x-1/2 -translate-y-full md:translate-y-0 z-10 flex gap-x-2",
+                !isActive ? "hidden" : ''
+            )}>
+                {
+                    aligns.map((value, index) => (
+                        <Button
+                            key={value}
+                            variant={align === value ? undefined : "outline"}
+                            onClick={() => updateImageBlock({ align: align === value ? undefined : value })}
+                        >
+                            {alignsIcons[index]}
+                        </Button>
+                    ))
+                }
+            </div>
+            <ImageInput
+                className={cn(
+                    "max-w-full w-full h-full",
+                    !aspect && !imageId ? "min-h-72" : '',
+                    aspect === "fill" ? 'absolute' : '',
+                    aspect === '4/3' ? 'aspect-[4/3]' : '',
+                    aspect === '3/2' ? 'aspect-[3/2]' : '',
+                    aspect === '16/9' ? 'aspect-video' : '',
+                    aspect === '1/1' ? 'aspect-square' : '',
+                    size === 'large' ? 'max-w-5xl' : '',
+                    size === 'medium' ? 'max-w-lg' : '',
+                    size === 'small' ? 'max-w-xs' : '',
+                    align === 'left' ? 'justify-self-start' : '',
+                    align === 'center' ? 'justify-self-center' : '',
+                    align === 'right' ? 'justify-self-end' : ''
+
+                )
+                }
+                value={image}
+                onClick={() => setGalleryOpen({
+                    selection: [Number(imageId)],
+                    onValidateSelection: (selected) => {
+                        if (!selected?.[0]?.id) return;
+                        updateBlock(blockID, {
+                            value: {
+                                ...value,
+                                imageId: selected?.[0].id
+                            }
+                        })
+                    }
+                })
+                }
+            />
+        </div>
+
+    )
+
 }
 
 const RowBlock: React.FC<{ block: EditorParsedBlock, isActive?: boolean }> = ({ block, isActive }) => {
-    const { blocks, setActiveBlock } = useEditor();
+    const { blocks, setActiveBlock, updateBlock } = useEditor();
 
-    const { blockID, hasFocusWithin } = block;
+    const { blockID, hasFocusWithin, value } = block as Omit<EditorParsedBlock, 'value'> & { value: BlockValueByType<{ type: 'group' }> };
 
     return (
         <div className={clsx(
-            "min-h-48 p-2 flex flex-wrap justify-center items-center border-2 border-dashed border-grey rounded-md w-full h-fit",
-            block.hasFocusWithin ? 'border-cyan-400' : 'border-grey'
+            "min-h-48 p-2 grid grid-flow-row justify-center items-center border-2 border-dashed border-grey rounded-md w-full h-full",
+            block.hasFocusWithin ? 'border-cyan-400' : 'border-grey',
+            value === "vertical" ? '' : 'md:grid-flow-col md:auto-cols-1fr',
         )}>
             {!!block?.children &&
                 block.children.map(childID => (
@@ -479,7 +631,39 @@ const RowBlock: React.FC<{ block: EditorParsedBlock, isActive?: boolean }> = ({ 
                     <Button variant="outline"><Plus className="mr-2" />Ajouter dedans</Button>
                 </AddBlockContextMenu>
             }
-            {(hasFocusWithin && !isActive) && <Button variant="outline" className="absolute z-10 -bottom-4" onClick={() => setActiveBlock(blockID)}><MdCenterFocusStrong className="mr-2" />Sélectionner la ligne</Button>}
+            {!!isActive &&
+                <div className="absolute grid gap-2 top-0 left-0 z-20">
+                    <Button variant={value !== "vertical" ? undefined : "outline"} onClick={() => updateBlock(blockID, { value: "horizontal" })}><BsArrowsExpandVertical /></Button>
+                    <Button variant={value === "vertical" ? undefined : "outline"} onClick={() => updateBlock(blockID, { value: "vertical" })}><BsArrowsExpand /></Button>
+                </div>
+            }
+            {(hasFocusWithin && !isActive) && <Button variant="outline" className="absolute z-10 -bottom-4" onClick={() => setActiveBlock(blockID)}><MdCenterFocusStrong className="mr-2" />Sélectionner le groupe</Button>}
+        </div>
+    )
+}
+
+const SpaceBlock: React.FC<{ block: EditorParsedBlock, isActive?: boolean }> = ({ block, isActive }) => {
+
+    const { updateBlock } = useEditor();
+
+    const { blockID, value } = block as Omit<EditorParsedBlock, 'value'> & { value: BlockValueByType<{ type: 'space' }> };
+
+    return (
+        <div
+            className="relative flex justify-center items-center h-full w-full"
+            style={{
+                minHeight: `${value ?? 8}px`,
+                minWidth: `${value?? 8}px`,
+            }}>
+
+            <div className={cn(
+                "absolute top-0 left-0 w-full",
+                !!isActive ? 'visible' : 'hidden'
+            )}>
+                <Slider defaultValue={[value ?? 8]} max={320} min={4} step={4} onValueChange={([val]) => updateBlock(blockID, { value: val })}/>
+            </div>
+
+            <p>Espacement de {value ?? 8} pixels</p>
         </div>
     )
 }

@@ -173,7 +173,7 @@ const BackendLayout: React.FC<PropsWithChildren> = ({ children }) => {
 
     return (
         <div className="flex min-h-screen w-full flex-col">
-            <header className="sticky top-0 flex h-16 items-center justify-between gap-4 border-b bg-background px-4 md:px-6">
+            <header className="sticky z-50 top-0 flex h-16 items-center justify-between gap-4 border-b bg-background px-4 md:px-6">
                 <Image src="/logo/logo-h-black.webp" alt="logo" width={256} height={80} className="object-contain py-2 h-full order-2" />
                 <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
                     <SheetTrigger asChild>
@@ -208,12 +208,15 @@ const BackendLayout: React.FC<PropsWithChildren> = ({ children }) => {
                     </DropdownMenuContent>
                 </DropdownMenu>
             </header>
-            <main className="flex min-h-[calc(100vh_-_theme(spacing.16))] flex-1 flex-col gap-4 bg-muted/40 p-4 md:gap-8 md:p-10">
+            
+            <main className="w-full grid md:grid-cols-[300px_1fr] min-h-[calc(100vh_-_theme(spacing.16))] bg-muted/40 p-4 md:p-0">
+            <NavMenuBack path={path} className="hidden h-fit md:flex md:gap-4 md:flex-col md:sticky md:top-16 md:left-0 md:p-8" />
+                
+                <div className="border-l py-12 lg:px-16">
                 <div className="mx-auto grid w-full max-w-6xl gap-2">
                     <h1 className="text-3xl font-semibold"></h1>
                 </div>
-                <div className="mx-auto grid w-full max-w-6xl items-start gap-6 md:grid-cols-[180px_1fr] lg:grid-cols-[250px_1fr]">
-                    <NavMenuBack path={path} className="hidden md:grid" />
+                    
                     <BackendGallery>
                         <div className="grid gap-6">
                             {children}

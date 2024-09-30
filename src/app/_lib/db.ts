@@ -610,6 +610,9 @@ export const updatePostInDB = errorHandlerDB(async (post: Partial<PostType>): Pr
         }
 
         const updatedPost = { ...prevPost[0], ...post };
+        
+        // update the slug
+        updatedPost.slug = updatedPost.title ? slugify(updatedPost.title) : updatedPost.id?.toString();
 
         updatedPost.updated_at = new Date();
 
@@ -749,6 +752,35 @@ export const getPostsFromDB = errorHandlerDB(async (id?: number | null, revalida
 
     }
 }, 'getPostFromDB');
+
+/**
+ * Get a post from the database by slug.
+ */
+export const getPostBySlugFromDB = errorHandlerDB(async (slug: string): Promise<RowDataPacket> => {
+    const db = await createConnection();
+    try {
+        if (!slug || typeof slug !== 'string') {
+            throw createResponseError('Error', 400);
+        }
+
+        let [post] = await db.query<RowDataPacket[]>(`SELECT * FROM \`posts\` WHERE slug=?`, [slug]);
+
+        if(!post.length) {
+            throw createResponseError('Post non trouvé', 404);
+        }
+        
+        return post[0];
+
+    } catch (e) {
+
+        throw e;
+
+    } finally {
+
+        db.end();
+
+    }
+}, 'getPostBySlugFromDB');
 
 /**
  * Get a post from the database.

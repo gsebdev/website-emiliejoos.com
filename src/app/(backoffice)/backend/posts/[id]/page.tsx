@@ -31,7 +31,6 @@ export default function EditPost({ params }: PostPageProps) {
     <Card>
       <CardHeader className="flex-row justify-between flex-wrap items-center">
         <CardTitle>Modifier la Publication : {post?.title ?? ""}</CardTitle>
-        <Button variant={"outline"} onClick={() => router.push("/backend/posts")}>Annuler</Button>
       </CardHeader>
 
       <CardContent>

@@ -33,7 +33,7 @@ export default function PostEditForm({ post, afterSubmit, isLoading }: PostFormP
 
     const { setGalleryOpen } = useGallery();
 
-    const blockEditorRef = useRef<EditorRefObject|null>(null);
+    const blockEditorRef = useRef<EditorRefObject | null>(null);
 
     const form = useForm<z.infer<typeof postFormSchema>>({
         resolver: zodResolver(postFormSchema),
@@ -50,30 +50,7 @@ export default function PostEditForm({ post, afterSubmit, isLoading }: PostFormP
             form.reset({
                 title: post.title,
                 excerpt: post.excerpt,
-                content: post.content ?? [
-                    {
-                        type: "text",
-                        value: "block de texte"
-                    },
-                    {
-                        type: "image"
-                    },
-                    {
-                        type: "row",
-                        children: [
-                            {
-                                type: 'image'
-                            },
-                            {
-                                type: 'image'
-                            },
-                            {
-                                type: "text",
-                                value: "<p>Salut les copains<p>"
-                            }
-                        ]
-                    }
-                ],
+                content: post.content,
                 cover: post.cover,
                 id: post.id,
             });
@@ -107,6 +84,25 @@ export default function PostEditForm({ post, afterSubmit, isLoading }: PostFormP
     return (
         <Form {...form}>
             <div className="flex flex-col gap-4">
+                <FormItem className="flex justify-end gap-4 items-center space-y-0 mt-4">
+                    <Button
+                        variant={"outline"}
+                        onClick={afterSubmit}
+                    >
+                        Annuler
+                    </Button>
+                    <Button
+                        type="submit"
+                        onClick={(e) => {
+                            form.setValue('content', blockEditorRef.current?.getRenderedValue())
+                            form.handleSubmit(onSubmit)(e)
+                        }}>
+                        {isLoading ?
+                            <>Enregistrement... <Loader className="h-full" /></> :
+                            "Enregistrer"
+                        }
+                    </Button>
+                </FormItem>
                 <FormField
                     control={form.control}
                     name="title"
@@ -169,7 +165,7 @@ export default function PostEditForm({ post, afterSubmit, isLoading }: PostFormP
                         <FormItem>
                             <FormLabel>Contenu principal de la publication</FormLabel>
                             <FormMessage />
-                            <BlocksEditor data={field.value} ref={blockEditorRef}/*onChange={newValue => { console.log(field.value, newValue);form.setValue('content', newValue);  }}*/ />
+                            <BlocksEditor data={field.value} ref={blockEditorRef} />
                         </FormItem>
                     )}
                 />
@@ -184,6 +180,7 @@ export default function PostEditForm({ post, afterSubmit, isLoading }: PostFormP
                         type="submit"
                         onClick={(e) => {
                             form.setValue('content', blockEditorRef.current?.getRenderedValue())
+                            console.log(blockEditorRef.current?.getRenderedValue())
                             form.handleSubmit(onSubmit)(e)
                         }}>
                         {isLoading ?
