@@ -4,7 +4,7 @@ import ImageInput from "@/app/_components/ui/image-input"
 import { BlockType, BlockValueByType } from "@/app/_types/definitions"
 import { DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu"
 import { Plus } from "lucide-react"
-import { Dispatch, MouseEventHandler, ReactElement, SetStateAction, createContext, forwardRef, useCallback, useContext, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from "react"
+import { Dispatch, MouseEventHandler, ReactElement, SetStateAction, createContext, forwardRef, useCallback, useContext, useEffect, useImperativeHandle, useRef, useState } from "react"
 import { useQuill } from "react-quilljs"
 import { useGallery } from "./gallery"
 import { useSelector } from "react-redux"
@@ -14,7 +14,7 @@ import { FaAlignJustify } from "react-icons/fa6";
 import { RxGroup } from "react-icons/rx";
 import clsx from "clsx"
 import { cn } from "@/app/_lib/client-utils"
-import { MdAlignHorizontalLeft, MdAlignHorizontalRight, MdAlignHorizontalCenter, MdCenterFocusStrong, MdOutlinePhotoSizeSelectSmall, MdOutlinePhotoSizeSelectLarge, MdOpenInFull, MdOutlinePhotoSizeSelectActual, MdOutlineAspectRatio } from "react-icons/md";
+import { MdAlignHorizontalLeft, MdAlignHorizontalRight, MdAlignHorizontalCenter, MdCenterFocusStrong, MdOutlinePhotoSizeSelectSmall, MdOutlinePhotoSizeSelectLarge, MdOpenInFull, MdOutlinePhotoSizeSelectActual } from "react-icons/md";
 import { Slider } from "@/app/_components/ui/slider"
 import { BsArrowsExpand, BsArrowsExpandVertical } from "react-icons/bs";
 
@@ -79,6 +79,19 @@ const BlocksEditorContextProvider = forwardRef<EditorRefObject, EditorProviderPr
         getRenderedValue: () => renderedBlocks ?? []
     }))
 
+    const updateBlock = useCallback((blockID: string, value: Partial<EditorParsedBlock>, shouldNotDirty?: boolean) => {
+        setBlocks(prevBlocks => {
+            const newBlocks = new Map(prevBlocks);
+            const blockToUpdate = newBlocks.get(blockID);
+            if (blockToUpdate) {
+                newBlocks.set(blockID, { ...blockToUpdate, ...value });
+                return newBlocks;
+            }
+            return newBlocks;
+        });
+        if (!shouldNotDirty) setIsDirty(true);
+    }, []);
+
     useEffect(() => {
         const blocksThatShouldHaveFocusWithin: string[] = [];
 
@@ -87,7 +100,6 @@ const BlocksEditorContextProvider = forwardRef<EditorRefObject, EditorProviderPr
             const activeBlockParent = blocks.get(activeBlock)?.parentID;
             let nParentBlock: EditorParsedBlock | undefined = activeBlockParent ? blocks.get(activeBlockParent) : undefined;
             while (nParentBlock) {
-                console.log('setting focus within', nParentBlock?.blockID, nParentBlock?.hasFocusWithin);
                 blocksThatShouldHaveFocusWithin.push(nParentBlock.blockID);
                 nParentBlock = nParentBlock.parentID ? blocks.get(nParentBlock.parentID) : undefined;
             }
@@ -101,7 +113,7 @@ const BlocksEditorContextProvider = forwardRef<EditorRefObject, EditorProviderPr
                 if (block.hasFocusWithin) updateBlock(block.blockID, { hasFocusWithin: false }, true)
             }
         });
-    }, [activeBlock, blocks])
+    }, [activeBlock, updateBlock, blocks])
 
     useEffect(() => {
         setRenderedBlocks(data);
@@ -207,19 +219,6 @@ const BlocksEditorContextProvider = forwardRef<EditorRefObject, EditorProviderPr
         });
         setActiveBlock(blockID);
         setIsDirty(true);
-    }, []);
-
-    const updateBlock = useCallback((blockID: string, value: Partial<EditorParsedBlock>, shouldNotDirty?: boolean) => {
-        setBlocks(prevBlocks => {
-            const newBlocks = new Map(prevBlocks);
-            const blockToUpdate = newBlocks.get(blockID);
-            if (blockToUpdate) {
-                newBlocks.set(blockID, { ...blockToUpdate, ...value });
-                return newBlocks;
-            }
-            return newBlocks;
-        });
-        if (!shouldNotDirty) setIsDirty(true);
     }, []);
 
     const deleteBlock = useCallback((blockID: string) => {
@@ -503,20 +502,20 @@ const ImageBlock: React.FC<{ block: EditorParsedBlock, isActive?: boolean }> = (
 
     const sizes = ['small', 'medium', 'large', 'full'];
     const sizesIcons = [
-        <MdOutlinePhotoSizeSelectSmall />,
-        <MdOutlinePhotoSizeSelectLarge />,
-        <MdOutlinePhotoSizeSelectActual />,
-        <MdOpenInFull />
+        <MdOutlinePhotoSizeSelectSmall key={"sizeSmall"} />,
+        <MdOutlinePhotoSizeSelectLarge key={"sizeLarge"}/>,
+        <MdOutlinePhotoSizeSelectActual key={"sizeActual"}/>,
+        <MdOpenInFull key={"sizeFull"}/>
     ];
 
     const aspects = ['fill', '4/3', '3/2', '16/9', '1/1'];
-    const aspectsLabels = [<MdOpenInFull />, '4:3', '3:2', '16:9', '1/1'];
+    const aspectsLabels = [<MdOpenInFull key={"aspectFull"}/>, '4:3', '3:2', '16:9', '1/1'];
 
     const aligns = ['left', 'center', 'right'];
     const alignsIcons = [
-        <MdAlignHorizontalLeft />,
-        <MdAlignHorizontalCenter />,
-        <MdAlignHorizontalRight />
+        <MdAlignHorizontalLeft key={"alignLeft"}/>,
+        <MdAlignHorizontalCenter key={"alignCenter"}/>,
+        <MdAlignHorizontalRight key={"alignRight"}/>
     ];
 
 
