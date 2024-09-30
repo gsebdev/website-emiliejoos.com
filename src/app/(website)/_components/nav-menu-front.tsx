@@ -4,10 +4,11 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { SiFacebook, SiInstagram, SiLinkedin } from "react-icons/si";
 import Image from "next/image";
-import { BookingDialog, BookingDialogContent, BookingDialogTrigger } from "./booking-dialog";
 import navLinks from '@/app/_config/front.nav.links.config.json'
 import { usePathname } from "next/navigation";
-import { cn } from "@/app/_lib/client-utils";;
+import { cn } from "@/app/_lib/client-utils";
+import { BookingComponent } from "./booking-component";
+;
 
 
 const NavLogoLink = ({ className, invert = false }: { className?: string, invert?: boolean }) => {
@@ -145,7 +146,7 @@ export default function NavMenuFront({ triggerClassName }: { triggerClassName?: 
     }, []);
 
     return (
-        <BookingDialog>
+        <>
             <nav
                 id="main-menu"
                 className={`flex flex-col justify-between pb-16 px-4 pt-0 overflow-y-auto overflow-x-hidden menu-nav fixed top-0 left-0 bg-background text-center h-screen w-screen z-40 origin-right ${isMenuOpen ? "translate-y-0" : "translate-y-full"}`}
@@ -166,9 +167,7 @@ export default function NavMenuFront({ triggerClassName }: { triggerClassName?: 
                             ))
                         }
                         <li>
-                            <BookingDialogTrigger className="btn-secondary--menu flex gap-x-2 items-center mt-4" >
-                               Rendez-vous
-                            </BookingDialogTrigger>
+                            <BookingComponent />
                         </li>
 
                     </ul>
@@ -202,7 +201,7 @@ export default function NavMenuFront({ triggerClassName }: { triggerClassName?: 
                 aria-expanded={isMenuOpen}
                 aria-controls="main-menu"
                 className={cn(
-                    "menu-toggler right-0 px-4 md:px-8 top-8 text-xl md:text-2xl font-heading uppercase z-40 transition-all",
+                    "menu-toggler right-0 px-4 md:px-8 top-8 text-2xl md:text-4xl font-heading uppercase z-40 transition-all",
                     isMenuOpen ? "is-open ease-in-slow-out-fast" : "",
                     triggerClassName,
                     triggerTransitionDuration === 'short' ? 'duration-75' : 'duration-300',
@@ -221,81 +220,7 @@ export default function NavMenuFront({ triggerClassName }: { triggerClassName?: 
                     className={"absolute top-8 md:top-4 left-4 z-30"}
                 />
             }
-            <BookingDialogContent
-                title="Prendre rendez-vous"
-                overlay
-                overlayClassName="bg-black bg-opacity-60"
-                className="lg:max-w-5xl lg:h-fit lg:max-h-[80vh] lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2"
-                showAnimationClassName="animate-slide-in-up lg:animate-fade-in"
-                hideAnimationClassName="animate-slide-out-down lg:animate-fade-out"
-                hideAnimationDuration={400}
-                showAnimationDuration={400}
-            >
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-                Salut <br />
-            </BookingDialogContent>
-        </BookingDialog>
+        </>
 
     )
 }

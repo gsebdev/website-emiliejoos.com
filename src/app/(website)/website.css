@@ -5,10 +5,11 @@
 @layer base {
   :root {
     --background: 25 100% 95%;
-    --foreground: 1 98% 79% /*351 65% 70%*/ ;
+    --foreground: 323, 100%, 38%;
     --primary: 0 0% 0%;
     --secondary: 0 0% 100%;
-    --accent: 351 39% 53%;
+    --accent: 325 49.68% 30.39%;
+    --popover: 323, 100%, 38%;
   }
 
   body {
@@ -45,11 +46,35 @@
     @apply text-5xl md:text-7xl xl:text-8xl;
   }
   h2 {
-    @apply text-3xl lg:text-5xl xl:text-7xl;
+    @apply text-3xl lg:text-4xl xl:text-6xl text-accent;
+  }
+
+  .blog-title, .blog-title .emphased {
+    background: linear-gradient(90deg, hsl(var(--popover)), #f77b7b);
+    -webkit-background-clip: text;
+    color: transparent;
+    background-clip: text;
+  }
+  .blog-title .emphased::before {
+    content: '';
+    width: 110%;
+    background-color: #ffe6f3;
+    height: 70%;
+    top: 50%;
+    transform: translateY(-50%);
+    position: absolute;
+    z-index: -1;
   }
 
   a:hover {
     @apply underline;
+  }
+
+  .absolute-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
   }
 
   [class^="btn-"] {
@@ -109,9 +134,24 @@
     @apply font-body text-xl font-bold py-4 md:text-2xl px-8;
     /*box-shadow: inset 0 0 0 3px var(--bg-hover-color);*/
   }
+
   .btn-secondary--menu:hover {
     transition: transform 0.3s ease-in-out;
     transform: scale(1.04);
+  }
+
+  .btn-secondary-inverted {
+    --btn-hover-mix-blend-mode: normal;
+    --btn-color: hsl(var(--primary));
+    --btn-hover-color: hsl(var(--background));
+    --bg-hover-color: hsl(var(--primary));
+    --bg-color: transparent;
+
+    @apply font-body text-xl font-bold py-4 md:text-2xl px-12;
+    box-shadow: inset 0 0 0 3px var(--btn-color);
+  }
+  .btn-secondary-inverted--small {
+    box-shadow: inset 0 0 0 1px var(--btn-color);
   }
 
   .menu-nav {
@@ -119,6 +159,10 @@
   }
   .menu-toggler {
     transition: transform 0.4s cubic-bezier(0.75, 0.15, 0.24, 1);
+  }
+
+  .break-anywhere {
+    overflow-wrap: anywhere;
   }
 
   @keyframes slide-in-up {

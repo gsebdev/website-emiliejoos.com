@@ -2,9 +2,9 @@ import Image from "next/image";
 import Link from "next/link";
 import navLinks from '@/app/_config/front.nav.links.config.json'
 import { getImagesFromDB, getSettingFromDB } from "../_lib/db";
-import { BookingDialog, BookingDialogContent, BookingDialogTrigger } from "./_components/booking-dialog";
 import TestimonialsCarousel from "./_components/testimonials-carousel";
 import { getBlurDataImage } from "../_lib/utils";
+import { BookingComponent } from "./_components/booking-component";
 
 export default async function Home() {
   let testimonialsError = null;
@@ -45,36 +45,23 @@ export default async function Home() {
           placeholder="blur"
           blurDataURL={await getBlurDataImage("/bg/home-emilie-joos-1.jpg")}
         />
-        <div className="flex flex-col justify-around items-center h-full text-secondary">
-          <div className="mt-24 md:mt-36">
+        <div className="flex flex-col items-center h-full text-secondary">
+          <div className="mt-14 md:mt-200">
+            <div className="relative w-full h-[33vh]" style={{ maxHeight: "min(33vh, 50vw)" }}>
+              <Image
+                src="/logo/logo-white.png"
+                className="object-contain"
+                sizes="(max-width: 768px) 50vw, 500px"
+                alt="logo cabinet d'osteopathie Emilie Joos"
+                fill
+              />
+            </div>
             <h1 className="pb-4 md:pb-12 lg:pb-24 text-secondary xl:text-9xl tracking-wide scale-x-110">Ostéopathie</h1>
-            <BookingDialog>
-              <BookingDialogTrigger className="btn-secondary mx-auto flex gap-x-2 items-center short:mb-8 short: mt-4">Rendez-vous</BookingDialogTrigger>
-              <BookingDialogContent
-                title="Prendre rendez-vous"
-                overlay
-                overlayClassName="bg-black bg-opacity-60"
-                className="lg:max-w-5xl lg:h-fit lg:max-h-[80vh] lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 text-primary"
-                showAnimationClassName="animate-slide-in-up lg:animate-fade-in"
-                hideAnimationClassName="animate-slide-out-down lg:animate-fade-out"
-                hideAnimationDuration={400}
-                showAnimationDuration={400}
-              >
-                Salut
-              </BookingDialogContent>
-            </BookingDialog>
-          </div>
-
-          <div className="relative w-full h-[33vh]" style={{ maxHeight: "min(33vh, 50vw)" }}>
-            <Image
-              src="/logo/logo-white.png"
-              className="object-contain"
-              sizes="(max-width: 768px) 50vw, 500px"
-              alt="logo cabinet d'osteopathie Emilie Joos"
-              fill
+            <BookingComponent
+              className="mx-auto block"
+              variant="secondary"
             />
           </div>
-
         </div>
       </section>
       <section data-menu-color="secondary" className="h-screen short:h-fit relative flex justify-center items-center">
@@ -114,15 +101,7 @@ export default async function Home() {
         </div>
       </section>
       <section data-menu-color="primary" className="min-h-[85vh] short:h-fit relative bg-background px-8 py-16 grid grid-cols-1 grid-rows-[auto_1fr] justify-items-center">
-        <div>
-          <h2 className="mb-8 text-center">Bribes</h2>
-          <div className="text-center text-xl p-8 my-8">
-            <p>Les &quot;BRIBES&quot; c&apos;est quoi ?</p>
-            <p>Ce sont des bouts de phrases que j&apos;ai eu plaisir à entendre après la question classique de fin de séance: Comment ça va ?</p>
-            <p>Des morceaux empreints de vérité et de spontanéité, qui décrivent parfaitement vos perceptions corporelles.</p>
-          </div>
 
-        </div>
 
         {
           !!testimonialsError &&

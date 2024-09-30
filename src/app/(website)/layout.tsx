@@ -31,10 +31,10 @@ const sourceSansPro = Source_Sans_3({
 });
 
 
-export default async function FrontLayout ({ children }: Readonly<{
+export default async function FrontLayout({ children }: Readonly<{
     children: React.ReactNode;
     params: string
-}>)  {
+}>) {
 
     return (
         <html lang="fr">
